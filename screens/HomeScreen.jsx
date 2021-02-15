@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   FlatList,
@@ -9,51 +9,36 @@ import {
   TouchableOpacity,
   Image
 } from 'react-native';
-import { TouchableHighlight, TouchableWithoutFeedback } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 
-const list = [
-  { screen: 'Sample2' },
-];
 
-export default class HomeScreen extends Component {
 
-  constructor(props) {
-    super(props)
-    this.setHeader()
 
-    this.state = {
-      projects: projects1,
-      data: data1,
-      listTransformX: new Animated.Value(0),
+export default function HomeScreen(props) {
 
-    }
-  }
+  const [projects, setProjects] = useState(projects1);
+  const [data, setData] = useState(data1);
+  const [listTransformX, setListTransformX] = useState(new Animated.Value(0));
 
-  setHeader = () => {
+  useEffect(() => {
+    console.log("test")
+    setHeader()
+  }, [])
+
+  /**
+   * Components
+   */
+  const setHeader = () => {
     //navigation v5
-    this.props.navigation.setOptions({
+    props.navigation.setOptions({
       headerTitle: '作業時間',
-      headerRight: () => this._renderProjectButton()
+      headerRight: () => _renderProjectButton()
     })
   }
 
-  // updateData = () => {
-  //   this.setState({
-  //     projects: projects2,
-  //     data: data2,
-  //   })
-  // }
-  // backData = () => {
-  //   this.setState({
-  //     projects: projects1,
-  //     data: data1,
-  //   })
-  // }
-
-  updateData = () => {
+  const updateData = () => {
     console.log("updateData")
-    const { listTransformX } = this.state
+
     Animated.timing(listTransformX, {
       toValue: -360,
       duration: 200,
@@ -64,9 +49,9 @@ export default class HomeScreen extends Component {
   }
 
 
-  backData = () => {
+  const backData = () => {
     console.log("updateData")
-    const { listTransformX } = this.state
+
     Animated.timing(listTransformX, {
       toValue: 0,
       duration: 200,
@@ -79,13 +64,13 @@ export default class HomeScreen extends Component {
   /****
    * Render
    */
-  _renderProjectButton = () => {
+  const _renderProjectButton = () => {
     return (
       <Text>testGGGGGG</Text>
     )
   }
 
-  _renderMenu = () => {
+  const _renderMenu = () => {
     return (
       <View style={styles.menu}>
         <Text style={styles.menu__text} >2021年2月</Text>
@@ -93,14 +78,14 @@ export default class HomeScreen extends Component {
     )
   }
 
-  _renderProjectMenu = () => {
+  const _renderProjectMenu = () => {
     return (
       <View style={styles.projectMenu}>
-        <TouchableOpacity style={styles.iconBox} onPress={this.backData}>
+        <TouchableOpacity style={styles.iconBox} onPress={backData}>
           <Image style={styles.icon} source={require('../assets/l.png')} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.iconBox} onPress={this.updateData}>
+        <TouchableOpacity style={styles.iconBox} onPress={updateData}>
           <Image style={styles.icon} source={require('../assets/r.png')} />
         </TouchableOpacity>
 
@@ -108,48 +93,13 @@ export default class HomeScreen extends Component {
     )
   }
 
-  /**
-   * TODO:   →出来たかな..
-   * やりたいこと。1ヶ月内での表示プロジェクトの切り替えについて
-   * stateで値を更新するだけでは無くて、左右からスライドするアニメで表示を切り替えたい。
-   * 縦スクロールで上部を固定する場合は、scrollViewならpropsの指定が出来る
-   * 可視範囲が1画面内ならflatListの外にthアイテムをおいておけばよい..
-   * ただし縦のscrollについては、縦・横で固定行がほしいので、
-   * 単純scrollでは1方向しか固定できない。
-   * 
-   * 表示エリアのwidthをoverFlowHiddenにすればはみ出した分は表示されないので、
-   * ここらへんをアニメーションさせれば行けそう。
-   * 1画面に表示する個数ずつ一つの括りにして、
-   * さらにその上でwidthを指定するviewを用意して、
-   * セルのwidthを%指定にすると溢れられないので、dimensionのwidthから計算するとか工夫が必要
-   * 
-   * → gestureでscrollでヘッダ
-   *  scrollViewで 
-   *  要素の位置を固定していくのが正しい考え方か...?
-   *    → scrollが斜めにできてしまうのがなんか気持ち悪い。これで実現しているわけでは無さそうだが<div className=""></div>
-   *    一応ちょっとやってみるか..
-   *     .... 結構難しい.....    
-   *     ヘッダーは動く必要はないのだから、onscroll別方向のonscrollの時にpositionを固定すれば
-   *    
-   *  (整理)
-   *  
-   *   ・縦方向のヘッダー固定はScrollViewにどのアイテムを固定するかというpropがある
-   *   ・１方向へのscrollヘッダー固定ならflatListやscrollViewの外にheaderを作って隣接させれば良い。
-   *     Listをflex:1にしてヘッダを隣接させれば、それで固定している感じになる。
-   *   
-   *   ・縦・横にスクロールして、縦横のヘッダーを固定したいとき...
-   *     ・ヘッダーがある方向にすくルールする場合は
-   */
+  const dStyle = {
+    transform: [
+      { translateX: listTransformX },
+    ],
+  };
 
-  _renderTableHeader = () => {
-
-    const { projects, listTransformX } = this.state
-    this.dStyle = {
-      transform: [
-        { translateX: listTransformX },
-      ],
-    };
-
+  const _renderTableHeader = () => {
     return (
       <View style={styles.tableHeader}>
 
@@ -159,9 +109,7 @@ export default class HomeScreen extends Component {
 
         {/* Visible View */}
         <View style={[styles.viewableArea]}>
-
-
-          <Animated.View style={[styles.listItemGroup, this.dStyle]}>
+          <Animated.View style={[styles.listItemGroup, dStyle]}>
             <View style={styles.headerItem}>
               <Text>{projects[0]}</Text>
             </View>
@@ -171,7 +119,6 @@ export default class HomeScreen extends Component {
             <View style={styles.headerItem}>
               <Text>{projects[2]}</Text>
             </View>
-
 
             <View style={styles.headerItem}>
               <Text>project4</Text>
@@ -191,13 +138,9 @@ export default class HomeScreen extends Component {
       </View>
     )
   }
-  //1カラム
-  _renderColumn = () => {
-
-  }
 
   //1行
-  _renderRow = (item) => {
+  const _renderRow = (item) => {
 
     const date = item.date.split('-')[2]
     return (
@@ -209,7 +152,7 @@ export default class HomeScreen extends Component {
 
         <View style={[styles.viewableArea]}>
 
-          <Animated.View style={[styles.listItemGroup, this.dStyle]}>
+          <Animated.View style={[styles.listItemGroup, dStyle]}>
 
             <View style={styles.listItem}>
               <Text>{item.time}</Text>
@@ -238,31 +181,35 @@ export default class HomeScreen extends Component {
     )
   }
 
+  /**
+   * return
+   */
+  return (
+    <SafeAreaView style={styles.container}>
+      {_renderMenu()}
+      {_renderProjectMenu()}
+      {_renderTableHeader()}
+      <FlatList
+        style={styles.listBox}
+        data={data}
+        renderItem={(item) => _renderRow(item.item)}
+        keyExtractor={(item, index) => index}
+      />
 
-  render() {
-    const { data } = this.state
-    return (
-      <SafeAreaView style={styles.container}>
-        {this._renderMenu()}
-        {this._renderProjectMenu()}
-        {this._renderTableHeader()}
-        <FlatList
-          style={styles.listBox}
-          data={data}
-          renderItem={(item) => this._renderRow(item.item)}
-          keyExtractor={(item, index) => index}
-        />
+
+      <View style={styles.iconBox}>
+
+      </View>
+
+    </SafeAreaView>
+  );
+  
+} //function
 
 
-        <View style={styles.iconBox}>
-
-        </View>
-
-      </SafeAreaView>
-    );
-  }
-}
-
+/**
+ * conf
+ */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -283,7 +230,7 @@ const styles = StyleSheet.create({
   },
 
   tableHeader: {
-    
+
     width: '100%',
     flexDirection: 'row',
     justifyContent: 'center',
@@ -305,8 +252,8 @@ const styles = StyleSheet.create({
 
   listBox: {
     width: '100%',
-    borderWidth:0.5,
-    borderColor:'gray'
+    borderWidth: 0.5,
+    borderColor: 'gray'
   },
   listRow: {
     width: '100%',
@@ -322,7 +269,7 @@ const styles = StyleSheet.create({
     borderColor: 'gray',
     borderWidth: 0.5,
   },
-  
+
   listItem__text: {
     fontSize: 24,
   },
@@ -342,7 +289,7 @@ const styles = StyleSheet.create({
   //
   projectMenu: {
     flexDirection: 'row',
-    padding:5,
+    padding: 5,
   },
   iconBox: {
     justifyContent: 'center',
@@ -352,7 +299,7 @@ const styles = StyleSheet.create({
   icon: {
     width: 44,
     height: 44,
-    marginHorizontal:5,
+    marginHorizontal: 5,
 
   }
 });
