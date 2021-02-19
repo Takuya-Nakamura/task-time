@@ -14,14 +14,13 @@ export default function HomeScreen(props) {
 
   const [projects, setProjects] = useState(projectsData);
   const [data, setData] = useState(data1);
-  const [animTodayBorderWidth, setListTransformX] = useState(new Animated.Value(0));
+  const [listTransformX, setListTransformX] = useState(new Animated.Value(0));
 
   useEffect(() => {
     console.log("useEffect")
     setHeader()
   }, [])
   const headerRef = useRef();
-
   /**
    * Components
    */
@@ -35,18 +34,20 @@ export default function HomeScreen(props) {
 
 
 
+
+
   /****
    * Render
    */
   const _renderProjectButton = () => {
     return (
       <TouchableWithoutFeedback
-        style={styles.addProjectBtn}
-        onPress={() => {
-          props.navigation.navigate('Project')
-        }}
+      style={styles.addProjectBtn}
+      onPress={()=>{
+        props.navigation.navigate('ProjectList')
+      }}
       >
-        <Text>Project</Text>
+        <Text>Add PJ</Text>
       </TouchableWithoutFeedback>
     )
   }
@@ -63,7 +64,6 @@ export default function HomeScreen(props) {
       <View style={styles.leftTopBox}></View>
     )
   }
-
   const _renderProjectHeader = () => {
     return (
       <ScrollView
@@ -71,11 +71,10 @@ export default function HomeScreen(props) {
         style={styles.projectHeader}
         bounces={false}
         ref={headerRef}
-        scrollEnabled={false} //header部分ではスクロールしない??
       >
         {projects.map((pj) => {
           return (
-            <View style={[styles.cell, styles.projectHeaderCell,]}>
+            <View style={[ styles.cell, styles.projectHeaderCell,]}>
               <Text style={styles.projectHeaderCell__text}>{pj}</Text>
             </View>
           )
@@ -84,31 +83,14 @@ export default function HomeScreen(props) {
     )
   }
 
-  // const todayCell = {
-  //   borderWidth:animTodayBorderWidth,
-  //   borderColor:'#fcba03'
-  // }
-
   const _renderDateHeader = () => {
-
     return (
-      <View style={{borderRightWidth:0.5}}>
+      <View>
         {data1.map((data) => {
-          const day = getDay(data.date)
-
-          // holiday
-          const dstyle = (day % 7) == 0 || (day % 7) == 1 ? styles.headerHoliday : {}
-          const dstyle__text = (day % 7) == 0 || (day % 7) == 1 ? styles.holidayTExt : {}
-
-
-          //today
-          const today_dstyle = (day % 10) == 0 ? styles.todayCell : {}
-          const today_dstyle__text = (day % 10) == 0 ? styles.todayCell__text : {}
-
           return (
-            <View style={[styles.cell, styles.dateHeaderCell, dstyle, today_dstyle]}>
-              <Text style={[styles.dateHeaderCell__text, dstyle__text]}>{parseInt(getDay(data.date))}</Text>
-              <Text style={[styles.dateHeaderCell__subText, dstyle__text]}>(月)</Text>
+            <View style={[styles.cell,styles.dateHeaderCell ]}>
+              <Text style={styles.dateHeaderCell__text}>{getDay(data.date)}</Text>
+              <Text style={styles.dateHeaderCell__subText}>(月)</Text>
             </View>
           )
         })}
@@ -116,22 +98,13 @@ export default function HomeScreen(props) {
     )
   }
 
-
   const _renderProjectItem = () => {
-
     return (
       <View style={styles.projectRow}>
         {data1.map((data) => {
-
-          const day = getDay(data.date)
-          const dstyle = (day % 7) == 0 || (day % 7) == 1  ? styles.holiday : {}
-          const dstyle__text = (day % 7) == 0 || (day % 7) == 1  ? styles.holidayTExt : {}
-
-          const today_dstyle = (day % 10) == 0 ? styles.todayCell : {}
-
           return (
-            <View style={[styles.projectItemCell, styles.cell, dstyle, today_dstyle]}>
-              <Text style={dstyle__text}>{data.time}</Text>
+            <View style={[styles.projectItemCell, styles.cell]}>
+              <Text>{data.time}</Text>
             </View>
           )
         })}
@@ -156,22 +129,22 @@ export default function HomeScreen(props) {
         {_leftTopBox()}
         {_renderProjectHeader()}
       </View>
-      <ScrollView bounces={false} style={{ flex: 1 }} >
-
+      <ScrollView bounces={false} style={{flex:1}} >
+        
         <View style={styles.flexRow}>
           {_renderDateHeader()}
-
+          
           <ScrollView
             bounces={false}
             horizontal={true}
             scrollEventThrottle={1}
-            onScroll={(e) => {
+            onScroll={(e)=>{
               const node = headerRef.current
-              node.scrollTo({ x: e.nativeEvent.contentOffset.x, y: e.nativeEvent.contentOffset.y, animated: false })
+              node.scrollTo({x:e.nativeEvent.contentOffset.x,y:e.nativeEvent.contentOffset.y, animated:false })
             }}
 
           >
-            {projects.map((data) => _renderProjectItem())}
+            {projects.map((data)=>_renderProjectItem())}
 
           </ScrollView>
         </View>
@@ -183,8 +156,8 @@ export default function HomeScreen(props) {
     </SafeAreaView>
   );
 
-
 } //function
+
 
 /**
  * conf
@@ -197,15 +170,15 @@ const styles = StyleSheet.create({
     // alignItems: 'center',
     // justifyContent: 'center',
   },
-  addProjectBtn: {
-    backgroundColor: "#ccffff",
-    height: 40,
-    width: 40,
-    marginRight: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 20
-
+  addProjectBtn:{
+    backgroundColor:"#ccffff", 
+    height:40, 
+    width:40, 
+    marginRight:30,
+    justifyContent:'center',
+    alignItems:'center',
+    borderRadius:20
+  
 
   },
   menu: {
@@ -219,102 +192,78 @@ const styles = StyleSheet.create({
     fontSize: 32
   },
   leftTopBox: {
-    height: 76,
-    width: 77,
+    height: 66,
+    width: 66,
     position: 'absolute',
     left: 0,
     top: 60,
-    borderRightWidth: 0.5,
-    backgroundColor:'#fff',
-    zIndex:2,
+    borderWidth: 0.5,
+    borderBottomWidth: 0.5,
+    borderColor: 'gray',
+    // zIndex:2,
   },
   cell: {
     height: 66,
     width: 66,
     borderWidth: 0.5,
-    borderRadius: 5,
     borderColor: 'gray',
     justifyContent: 'center',
     alignItems: 'center',
-    margin: 5,
-
-
+    margin:5
+    
   },
   projectHeader: {
-    paddingLeft: 78,
-    borderBottomWidth:0.5,
-
+    marginLeft: 78,
+    
   },
   projectHeaderCell: {
     backgroundColor: '#E02729',
-    borderWidth: 0,
-    borderRadius: 5,
-    padding: 5,
+    borderWidth:0,
+    borderRadius:5,
+    padding:5,
   },
-  projectHeaderCell__text: {
-    color: 'white',
-    textAlign: 'center',
-    fontWeight: 'bold',
+  projectHeaderCell__text:{
+    color:'white',
+    textAlign:'center',
+    fontWeight:'bold',
     // fontSize:32,
   },
 
-  // #49A83A
-  // #F4BD3A
-  // #49A839
-  // #159E98
-  // #3E98D8
-  // #252BD3
-  // #7C1BEF
+// #49A83A
+// #F4BD3A
+// #49A839
+// #159E98
+// #3E98D8
+// #252BD3
+// #7C1BEF
 
   dateHeaderCell: {
-    // backgroundColor: '#159E98',
-    // borderBottomWidth:1,
-    borderWidth: 0,
+    backgroundColor: '#49A839',
+    borderWidth:0,
+    borderRadius:5,
+    padding:5
+  },
+  dateHeaderCell__text:{
+    color:'white',
+    fontSize:20
+  },  
+  dateHeaderCell__subText:{
+    color:'white',
+  },  
 
-    borderColor: "#fcba03",
-    borderRadius: 5,
-    padding: 5
-  },
-  dateHeaderCell__text: {
-    // color:'white',
-    fontSize: 20
-  },
-  dateHeaderCell__subText: {
-    // color:'white',
-  },
-
-  projectRow: {
-    // backgroundColor:'#ffcccc',
-    // borderColor:'red',
-    // borderWidth:1,
+  projectRow:{
+    backgroundColor:'#ffcccc',
+    borderColor:'red',
+    borderWidth:1,
   },
   projectItemCell: {
-    // backgroundColor:'#ffcccc',
-    padding: 5
-  },
-  holiday: {
-    backgroundColor: '#ffdddd',
-    borderWidth: 0
-  },
-  holidayTExt: {
-    color: 'red'
-  },
 
-  headerHoliday: {
-    backgroundColor: '#ffdddd',
-    borderWidth: 0,
   },
-  todayCell:{
-    borderWidth:5,
-    borderColor:'#fcba03'
-  },
-
   flexRow: {
     flexDirection: 'row',
   }
 
 });
-
 
 
 
