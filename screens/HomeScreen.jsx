@@ -1,39 +1,182 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   SafeAreaView,
-  FlatList,
   View,
   Text,
   StyleSheet,
   ScrollView,
+  Dimensions,
 } from 'react-native';
-import { TouchableHighlight, TouchableWithoutFeedback } from 'react-native-gesture-handler';
-import Animated from 'react-native-reanimated';
+import { TouchableWithoutFeedback } from 'react-native-gesture-handler';
 
-export default function HomeScreen(props) {
 
-  const [projects, setProjects] = useState(projectsData);
-  const [data, setData] = useState(data1);
-  const [animTodayBorderWidth, setListTransformX] = useState(new Animated.Value(0));
+// db
+import { createTables, db } from '../util/db'
+
+// layout
+const width = Dimensions.get('window').width;
+
+
+export default function HomeScreen({ navigation }) {
+
+  const [times, setTimes] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [dateList, setDateList] = useState([]);
+  const [cellData, setCellData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const [year, setYear] = useState(2021);
+  const [month, setMonth] = useState(2);
+
+  // //for sync create
+  let dateList_for_create = []
+  let projects_for_create = []
+  let times_for_create = []
 
   useEffect(() => {
-    console.log("useEffect")
-    setHeader()
-  }, [])
-  const headerRef = useRef();
+    //db
+    createTables()
 
-  /**
-   * Components
-   */
+    //data
+    // createData()
+
+    //main
+    setHeader()
+
+    const unsubscribe = navigation.addListener('focus', () => {
+      console.log("focus")
+      createData()
+    });
+
+  }, [])
+
+  const headerRef = useRef();
+  const cellRef = useRef();
+
   const setHeader = () => {
     //navigation v5
-    props.navigation.setOptions({
+    navigation.setOptions({
       headerTitle: '作業時間',
-      headerRight: () => _renderProjectButton()
+      headerRight: () => _renderProjectButton(),
     })
   }
 
 
+  /**
+   *  event
+   */
+
+  const onPressCellItem = (date, project) => {
+    const params = {
+      date: date,
+      project: project
+    }
+    // navigation.navigate('TaskEdit', params)
+    navigation.navigate('DateTaskList', params)
+  }
+
+  const onPressProjectHeader = (projectId) => {
+    const params = {
+      id: projectId
+    }
+    //TODO本当はプロジェクトの今月の集計ページに行ったほうが良いかも
+    navigation.navigate('ProjectEdit', params) 
+  }
+
+  /**
+   *  data
+   */
+
+  /**
+   * 今月の日付一覧を取得する 
+   */
+  const getThisMonthDateList = () => {
+    const endDate = new Date(year, month, 0).getDate() //monthは0起算なので注意
+    const list = []
+    for (let d = 1; d <= endDate; d++) {
+      list.push({
+        date: `${year}-${padding(month)}-${padding(d)}`,
+        weekDay: getWeekDayJp(year, month, d)
+      })
+    }
+    dateList_for_create = list
+    // return list
+  }
+
+  /**
+   * 
+   */
+  const createData = () => {
+    console.log("createData")
+    //日付リスト作成
+    getThisMonthDateList()
+
+    //DBからデータ取得
+    const sql_projects = 'SELECT * FROM projects;';
+    const sql_times = 'SELECT id, date, project_id, SUM(time) AS time FROM times GROUP BY project_id, date;';
+
+    db.transaction(tx => {
+      tx.executeSql(
+        sql_projects,
+        null,
+        (obj, resultSet) => {
+          projects_for_create = resultSet.rows._array
+
+        },
+        (obj, error) => { console.log('execute fail', error) }
+      );
+      tx.executeSql(
+        sql_times,
+        null,
+        (obj, resultSet) => {
+          times_for_create = resultSet.rows._array
+
+        },
+        (obj, error) => { console.log('execute fail', error) }
+      );
+    },
+      (e) => { console.log(e) },
+      (s) => { createCellData(projects_for_create, dateList_for_create, times_for_create) }
+
+    )
+  }
+
+
+  /**
+   * ItemCell描画用のデータを作成
+   * {
+   *   project_id:[{date, time}],
+   *   project_id:[{date, time}],
+   * }
+   * のデータを作成する
+   * project毎 loop, date毎 loop
+   */
+  const createCellData = (projects, dateList, times) => {
+    console.log("createCellData")
+    const data = {}
+    projects.map((pj) => {
+      const items = dateList.map((date) => {
+        return ({
+          'date': date.date,
+          'time': selectTime(times, pj.id, date.date)
+        })
+      })
+      data[pj.id] = items
+    })
+
+    setCellData(data)
+    setProjects(projects)
+    setDateList(dateList)
+    setTimes(times)
+    setLoading(false)
+
+  }
+
+  const selectTime = (times, projectId, date) => {
+    // console.log("selectTime",times, projectId, date)
+    const time = times.find((time) => (time.project_id == projectId && time.date == date)) || null
+    return time ? time.time : 0
+  }
 
   /****
    * Render
@@ -43,7 +186,7 @@ export default function HomeScreen(props) {
       <TouchableWithoutFeedback
         style={styles.addProjectBtn}
         onPress={() => {
-          props.navigation.navigate('Project')
+          navigation.navigate('Project')
         }}
       >
         <Text>Project</Text>
@@ -54,61 +197,69 @@ export default function HomeScreen(props) {
   const _renderMenu = () => {
     return (
       <View style={styles.menu}>
-        <Text style={styles.menu__text} >2021年2月</Text>
+        <Text style={styles.menu__text} >{year}年{month}月</Text>
       </View>
     )
   }
+
   const _leftTopBox = () => {
     return (
-      <View style={styles.leftTopBox}></View>
+      <View style={styles.leftTopBox}>
+        {/* <PathButtonAnim/> */}
+      </View>
     )
   }
 
   const _renderProjectHeader = () => {
+
+    console.log("projects", projects)
     return (
       <ScrollView
         horizontal={true}
         style={styles.projectHeader}
         bounces={false}
         ref={headerRef}
-        scrollEnabled={false} //header部分ではスクロールしない??
+        scrollEnabled={true}
+        scrollEventThrottle={1}
+        onScroll={(e) => {
+          const node = cellRef.current
+          node.scrollTo({ x: e.nativeEvent.contentOffset.x, y: e.nativeEvent.contentOffset.y, animated: false })
+        }}
       >
-        {projects.map((pj) => {
-          return (
-            <View style={[styles.cell, styles.projectHeaderCell,]}>
-              <Text style={styles.projectHeaderCell__text}>{pj}</Text>
-            </View>
-          )
-        })}
+        {projects.map((pj, index) => (
+
+          <TouchableWithoutFeedback
+            key={index}
+            style={[styles.cell, styles.projectHeaderCell,]}
+            onPress={() => onPressProjectHeader(pj.id)} 
+
+          >
+            <Text style={styles.projectHeaderCell__text}>{pj.name}</Text>
+          </TouchableWithoutFeedback>
+        )
+        )}
       </ScrollView>
     )
   }
 
-  // const todayCell = {
-  //   borderWidth:animTodayBorderWidth,
-  //   borderColor:'#fcba03'
-  // }
-
   const _renderDateHeader = () => {
 
     return (
-      <View style={{borderRightWidth:0.5}}>
-        {data1.map((data) => {
+      <View style={{ borderRightWidth: 0.5 }}>
+        {dateList.map((data, index) => {
           const day = getDay(data.date)
 
           // holiday
-          const dstyle = (day % 7) == 0 || (day % 7) == 1 ? styles.headerHoliday : {}
-          const dstyle__text = (day % 7) == 0 || (day % 7) == 1 ? styles.holidayTExt : {}
-
+          const dstyle = (day % 7) == 0 || (day % 7) == 6 ? styles.headerHoliday : {}
+          const dstyle__text = (day % 7) == 0 || (day % 7) == 6 ? styles.holidayTExt : {}
 
           //today
-          const today_dstyle = (day % 10) == 0 ? styles.todayCell : {}
-          const today_dstyle__text = (day % 10) == 0 ? styles.todayCell__text : {}
+          const today_dstyle = isToday(year, month, day) ? styles.todayCell : {}
 
           return (
-            <View style={[styles.cell, styles.dateHeaderCell, dstyle, today_dstyle]}>
+            <View key={index} style={[styles.cell, styles.dateHeaderCell, dstyle, today_dstyle]}>
               <Text style={[styles.dateHeaderCell__text, dstyle__text]}>{parseInt(getDay(data.date))}</Text>
-              <Text style={[styles.dateHeaderCell__subText, dstyle__text]}>(月)</Text>
+              <Text style={[styles.dateHeaderCell__subText, dstyle__text]}>({data.weekDay})</Text>
             </View>
           )
         })}
@@ -117,38 +268,53 @@ export default function HomeScreen(props) {
   }
 
 
-  const _renderProjectItem = () => {
+  const _renderProjectItem = (project, index) => {
 
+    const projectData = cellData[project.id] || []
     return (
-      <View style={styles.projectRow}>
-        {data1.map((data) => {
+      <View key={index} style={styles.projectRow}>
 
-          const day = getDay(data.date)
-          const dstyle = (day % 7) == 0 || (day % 7) == 1  ? styles.holiday : {}
-          const dstyle__text = (day % 7) == 0 || (day % 7) == 1  ? styles.holidayTExt : {}
+        {projectData.map((item, index) => {
 
-          const today_dstyle = (day % 10) == 0 ? styles.todayCell : {}
+          const day = getDay(item.date)
+          //isHoliday
+          const dstyle = (day % 7) == 0 || (day % 7) == 6 ? styles.holiday : {}
+          const dstyle__text = (day % 7) == 0 || (day % 7) == 6 ? styles.holidayTExt : {}
+          //today
+          const today_dstyle = isToday(year, month, day) ? styles.todayCell : {}
 
           return (
-            <View style={[styles.projectItemCell, styles.cell, dstyle, today_dstyle]}>
-              <Text style={dstyle__text}>{data.time}</Text>
-            </View>
+            <TouchableWithoutFeedback
+              key={index}
+              onPress={() => onPressCellItem(item.date, project)}
+              index={index}
+              style={[styles.projectItemCell, styles.cell, dstyle, today_dstyle]}>
+              <Text style={dstyle__text}>{item.time}</Text>
+            </TouchableWithoutFeedback>
           )
         })}
       </View>
     )
-
   }
 
-  const getDay = (date) => {
-    return date.split('-')[2]
+  const _renderLoader = () => {
+    return (
+      <View style={styles.loader}>
+        {/* <ActivityIndicator size="large" color="#000" /> */}
+      </View>
+    )
   }
 
   /**
    * return
    */
+  if (loading == true) {
+    return (_renderLoader())
+  }
+
   return (
     <SafeAreaView style={styles.container}>
+
 
       {/* テーブル */}
       <View>
@@ -156,8 +322,9 @@ export default function HomeScreen(props) {
         {_leftTopBox()}
         {_renderProjectHeader()}
       </View>
-      <ScrollView bounces={false} style={{ flex: 1 }} >
 
+
+      <ScrollView bounces={false} style={{ flex: 1 }} >
         <View style={styles.flexRow}>
           {_renderDateHeader()}
 
@@ -169,17 +336,13 @@ export default function HomeScreen(props) {
               const node = headerRef.current
               node.scrollTo({ x: e.nativeEvent.contentOffset.x, y: e.nativeEvent.contentOffset.y, animated: false })
             }}
-
+            ref={cellRef}
           >
-            {projects.map((data) => _renderProjectItem())}
+            {projects.map((project, index) => _renderProjectItem(project, index))}
 
           </ScrollView>
         </View>
-
       </ScrollView>
-
-
-
     </SafeAreaView>
   );
 
@@ -190,6 +353,12 @@ export default function HomeScreen(props) {
  * conf
  */
 const styles = StyleSheet.create({
+  loader: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+
   container: {
     flex: 1,
     flexDirection: 'column',
@@ -205,9 +374,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 20
-
-
   },
+  addTasktBtn: {
+    backgroundColor: "#ffcccc",
+    height: 40,
+    width: 40,
+    marginLeft: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20
+  },
+
   menu: {
     height: 60,
     // width: "100%",
@@ -225,8 +402,9 @@ const styles = StyleSheet.create({
     left: 0,
     top: 60,
     borderRightWidth: 0.5,
-    backgroundColor:'#fff',
-    zIndex:2,
+    borderBottomWidth: 0.5,
+    backgroundColor: '#fff',
+    zIndex: 2,
   },
   cell: {
     height: 66,
@@ -241,9 +419,8 @@ const styles = StyleSheet.create({
 
   },
   projectHeader: {
-    paddingLeft: 78,
-    borderBottomWidth:0.5,
-
+    marginLeft: 78,
+    borderBottomWidth: 0.5,
   },
   projectHeaderCell: {
     backgroundColor: '#E02729',
@@ -304,9 +481,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffdddd',
     borderWidth: 0,
   },
-  todayCell:{
-    borderWidth:5,
-    borderColor:'#fcba03'
+  todayCell: {
+    borderWidth: 5,
+    borderColor: '#fcba03'
   },
 
   flexRow: {
@@ -317,80 +494,32 @@ const styles = StyleSheet.create({
 
 
 
+/**
+ * util
+ */
 
-const projectsData = [
-  'プロジェクト1',
-  'プロジェクト2',
-  'プロジェクト3',
-  'プロジェクト4',
-  'プロジェクト5',
-  'プロジェクト6',
-  'プロジェクト7',
-  'プロジェクト8',
-  'プロジェクト9',
-]
+const getWeekDayJp = (year, month, day) => {
+  const dayOfWeekStr = ["日", "月", "火", "水", "木", "金", "土"]
+  const date = new Date(year, month - 1, day)
+  const weekDay = date.getDay()
+  return dayOfWeekStr[weekDay]
+}
 
-const data1 = [
-  { date: '2021-02-01', time: '8' },
-  { date: '2021-02-02', time: '8' },
-  { date: '2021-02-03', time: '8' },
-  { date: '2021-02-04', time: '8' },
-  { date: '2021-02-05', time: '8' },
-  { date: '2021-02-06', time: '8' },
-  { date: '2021-02-07', time: '8' },
-  { date: '2021-02-08', time: '8' },
-  { date: '2021-02-09', time: '8' },
-  { date: '2021-02-10', time: '8' },
-  { date: '2021-02-11', time: '8' },
-  { date: '2021-02-12', time: '8' },
-  { date: '2021-02-13', time: '8' },
-  { date: '2021-02-14', time: '8' },
-  { date: '2021-02-15', time: '8' },
-  { date: '2021-02-16', time: '8' },
-  { date: '2021-02-17', time: '8' },
-  { date: '2021-02-18', time: '8' },
-  { date: '2021-02-19', time: '8' },
-  { date: '2021-02-20', time: '8' },
-  { date: '2021-02-21', time: '8' },
-  { date: '2021-02-22', time: '8' },
-  { date: '2021-02-23', time: '8' },
-  { date: '2021-02-24', time: '8' },
-  { date: '2021-02-25', time: '8' },
-  { date: '2021-02-26', time: '8' },
-  { date: '2021-02-27', time: '8' },
-  { date: '2021-02-28', time: '8' },
+const padding = (num) => {
+  return ('00' + num).slice(-2);
+}
 
-]
+const getDay = (date) => {
+  // return date
+  return date.split('-')[2]
+}
 
+const isToday = (year, month, day) => {
+  const today = new Date()
+  const compare = new Date(year, month - 1, day)
+  return today.toDateString() == compare.toDateString()
+}
 
-const data2 = [
-  { date: '2021-02-01', time: '3' },
-  { date: '2021-02-02', time: '3' },
-  { date: '2021-02-03', time: '3' },
-  { date: '2021-02-04', time: '3' },
-  { date: '2021-02-05', time: '3' },
-  { date: '2021-02-06', time: '3' },
-  { date: '2021-02-07', time: '3' },
-  { date: '2021-02-08', time: '3' },
-  { date: '2021-02-09', time: '3' },
-  { date: '2021-02-10', time: '3' },
-  { date: '2021-02-11', time: '3' },
-  { date: '2021-02-12', time: '3' },
-  { date: '2021-02-13', time: '3' },
-  { date: '2021-02-14', time: '3' },
-  { date: '2021-02-15', time: '3' },
-  { date: '2021-02-16', time: '3' },
-  { date: '2021-02-17', time: '3' },
-  { date: '2021-02-18', time: '3' },
-  { date: '2021-02-19', time: '3' },
-  { date: '2021-02-20', time: '3' },
-  { date: '2021-02-21', time: '3' },
-  { date: '2021-02-22', time: '3' },
-  { date: '2021-02-23', time: '3' },
-  { date: '2021-02-24', time: '3' },
-  { date: '2021-02-25', time: '3' },
-  { date: '2021-02-26', time: '3' },
-  { date: '2021-02-27', time: '3' },
-  { date: '2021-02-28', time: '3' },
+const isHoliday = () => {
 
-]
+}
