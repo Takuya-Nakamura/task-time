@@ -1,15 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   SafeAreaView,
-  FlatList,
   View,
   Text,
   StyleSheet,
-  ScrollView,
-  Button,
   Alert,
 } from 'react-native';
 import { TextInput, TouchableHighlight, TouchableWithoutFeedback } from 'react-native-gesture-handler';
+import { Color, Font, Size } from '../util/global_style'
 
 // db
 import { db } from '../util/db'
@@ -17,6 +15,7 @@ import { db } from '../util/db'
 export default function TaskEditScreen({ navigation, route }) {
 
   const [projectId, setProjectId] = useState('');
+  const [projectName, setProjectName] = useState('');
   const [taskId, setTaskId] = useState('');
   const [taskName, setTaskName] = useState('');
 
@@ -33,11 +32,14 @@ export default function TaskEditScreen({ navigation, route }) {
  *  init
  */
   const init = () => {
+    console.log("route.params", route.params)
     if (route.params) {
       setProjectId(route.params.projectId)
+      setProjectName(route.params.projectName)
       setTaskId(route.params.taskId)
       setTaskName(route.params.taskName)
     }
+    console.log("route.params", route.params)
   }
 
 
@@ -71,7 +73,6 @@ export default function TaskEditScreen({ navigation, route }) {
 
 
   const insertTask = () => {
-    console.log("insertTask")
     const sql = 'INSERT INTO tasks (name, project_id) VALUES (?, ?)';
 
     db.transaction(tx => {
@@ -117,6 +118,11 @@ export default function TaskEditScreen({ navigation, route }) {
    */
   return (
     <SafeAreaView style={styles.container}>
+
+      <View style={styles.field} >
+        <Text style={styles.projectName}>{projectName}</Text>
+      </View>
+
       <View style={styles.field} >
         <View style={styles.time_row}>
           <TextInput
@@ -124,7 +130,7 @@ export default function TaskEditScreen({ navigation, route }) {
             value={taskName}
             placeholder={'タスク名'}
             autoFocus={true}
-            style={[styles.textInput, styles.taskName]}
+            style={[styles.textInput]}
           >
           </TextInput>
         </View>
@@ -176,32 +182,31 @@ const styles = StyleSheet.create({
 
   field__text: {
     marginBottom: 20,
-    fontSize: 16,
   },
 
+  projectName: {
+    fontWeight: "bold",
+    fontSize: Font.labelSize,
+
+  },
   textInput: {
     borderBottomWidth: 1,
-    borderColor: 'gray',
+    borderColor: Color.borderColor,
     padding: 5,
     borderRadius: 5,
-    fontSize: 16,
+
 
   },
   textInput_active: {
     borderColor: '#ed7d3b',
     borderBottomWidth: 1,
-    // color:'#ed7d3b',
   },
-  taskName: {
-    // width: '70%'
-  },
-
 
 
   saveButton: {
-    backgroundColor: '#4287f5',
-    width: 200,
-    height: 40,
+    backgroundColor: Color.saveButton,
+    width: Size.button_with,
+    height: Size.button_height,
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'center',
@@ -211,9 +216,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold'
   },
   deleteButton: {
-    backgroundColor: '#f54842',
-    width: 200,
-    height: 40,
+    backgroundColor: Color.deleteButton,
+    width: Size.button_with,
+    height: Size.button_height,
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'center',
@@ -223,10 +228,3 @@ const styles = StyleSheet.create({
 });
 
 
-const taskList = [
-  '画面設計',
-  '画面設計2',
-  '画面設計3',
-  '画面設計4',
-
-]

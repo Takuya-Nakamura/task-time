@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { TouchableWithoutFeedback } from 'react-native-gesture-handler';
 
+import { Color, Font, Size } from '../util/global_style'
 
 // db
 import { createTables, db } from '../util/db'
@@ -38,7 +39,6 @@ export default function HomeScreen({ navigation }) {
     createTables()
 
     //data
-    // createData()
 
     //main
     setHeader()
@@ -47,8 +47,10 @@ export default function HomeScreen({ navigation }) {
       console.log("focus")
       createData()
     });
+    return unsubscribe;
 
   }, [])
+
 
   const headerRef = useRef();
   const cellRef = useRef();
@@ -71,7 +73,13 @@ export default function HomeScreen({ navigation }) {
       date: date,
       project: project
     }
-    // navigation.navigate('TaskEdit', params)
+    navigation.navigate('DateTaskList', params)
+  }
+
+  const onPressDateHeader = (date) => {
+    const params = {
+      date: date,
+    }
     navigation.navigate('DateTaskList', params)
   }
 
@@ -80,7 +88,7 @@ export default function HomeScreen({ navigation }) {
       id: projectId
     }
     //TODO本当はプロジェクトの今月の集計ページに行ったほうが良いかも
-    navigation.navigate('ProjectEdit', params) 
+    navigation.navigate('ProjectEdit', params)
   }
 
   /**
@@ -121,7 +129,6 @@ export default function HomeScreen({ navigation }) {
         null,
         (obj, resultSet) => {
           projects_for_create = resultSet.rows._array
-
         },
         (obj, error) => { console.log('execute fail', error) }
       );
@@ -130,13 +137,16 @@ export default function HomeScreen({ navigation }) {
         null,
         (obj, resultSet) => {
           times_for_create = resultSet.rows._array
-
         },
         (obj, error) => { console.log('execute fail', error) }
       );
     },
       (e) => { console.log(e) },
-      (s) => { createCellData(projects_for_create, dateList_for_create, times_for_create) }
+      (s) => { 
+        console.log("test")
+        createCellData(projects_for_create, dateList_for_create, times_for_create) 
+
+      }
 
     )
   }
@@ -173,7 +183,6 @@ export default function HomeScreen({ navigation }) {
   }
 
   const selectTime = (times, projectId, date) => {
-    // console.log("selectTime",times, projectId, date)
     const time = times.find((time) => (time.project_id == projectId && time.date == date)) || null
     return time ? time.time : 0
   }
@@ -212,7 +221,6 @@ export default function HomeScreen({ navigation }) {
 
   const _renderProjectHeader = () => {
 
-    console.log("projects", projects)
     return (
       <ScrollView
         horizontal={true}
@@ -231,7 +239,7 @@ export default function HomeScreen({ navigation }) {
           <TouchableWithoutFeedback
             key={index}
             style={[styles.cell, styles.projectHeaderCell,]}
-            onPress={() => onPressProjectHeader(pj.id)} 
+            onPress={() => onPressProjectHeader(pj.id)}
 
           >
             <Text style={styles.projectHeaderCell__text}>{pj.name}</Text>
@@ -248,7 +256,6 @@ export default function HomeScreen({ navigation }) {
       <View style={{ borderRightWidth: 0.5 }}>
         {dateList.map((data, index) => {
           const day = getDay(data.date)
-
           // holiday
           const dstyle = (day % 7) == 0 || (day % 7) == 6 ? styles.headerHoliday : {}
           const dstyle__text = (day % 7) == 0 || (day % 7) == 6 ? styles.holidayTExt : {}
@@ -257,10 +264,14 @@ export default function HomeScreen({ navigation }) {
           const today_dstyle = isToday(year, month, day) ? styles.todayCell : {}
 
           return (
-            <View key={index} style={[styles.cell, styles.dateHeaderCell, dstyle, today_dstyle]}>
+            <TouchableWithoutFeedback
+              key={index}
+              style={[styles.cell, styles.dateHeaderCell, dstyle, today_dstyle]}
+              onPress={() => onPressDateHeader(data.date)}
+            >
               <Text style={[styles.dateHeaderCell__text, dstyle__text]}>{parseInt(getDay(data.date))}</Text>
               <Text style={[styles.dateHeaderCell__subText, dstyle__text]}>({data.weekDay})</Text>
-            </View>
+            </TouchableWithoutFeedback>
           )
         })}
       </View>
@@ -324,8 +335,8 @@ export default function HomeScreen({ navigation }) {
       </View>
 
 
-      <ScrollView bounces={false} style={{ flex: 1 }} >
-        <View style={styles.flexRow}>
+      <ScrollView bounces={false}>
+        <View style={styles.row}>
           {_renderDateHeader()}
 
           <ScrollView
@@ -353,6 +364,10 @@ export default function HomeScreen({ navigation }) {
  * conf
  */
 const styles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+  },
+
   loader: {
     flex: 1,
     justifyContent: 'center',
@@ -362,9 +377,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     flexDirection: 'column',
-    backgroundColor: '#fff',
-    // alignItems: 'center',
-    // justifyContent: 'center',
+    backgroundColor: Color.backGroundColor,
+
   },
   addProjectBtn: {
     backgroundColor: "#ccffff",
@@ -375,19 +389,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 20
   },
-  addTasktBtn: {
-    backgroundColor: "#ffcccc",
-    height: 40,
-    width: 40,
-    marginLeft: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 20
-  },
 
   menu: {
     height: 60,
-    // width: "100%",
     backgroundColor: "#dfdfdf",
     alignItems: "center",
     justifyContent: 'center'
@@ -403,27 +407,26 @@ const styles = StyleSheet.create({
     top: 60,
     borderRightWidth: 0.5,
     borderBottomWidth: 0.5,
-    backgroundColor: '#fff',
     zIndex: 2,
   },
   cell: {
-    height: 66,
-    width: 66,
+    height: Size.cell,
+    width: Size.cell,
     borderWidth: 0.5,
     borderRadius: 5,
     borderColor: 'gray',
     justifyContent: 'center',
     alignItems: 'center',
     margin: 5,
-
+    backgroundColor: Color.cell
 
   },
   projectHeader: {
-    marginLeft: 78,
+    marginLeft: Size.cell + 11,
     borderBottomWidth: 0.5,
   },
   projectHeaderCell: {
-    backgroundColor: '#E02729',
+    backgroundColor: Color.defaultRed,
     borderWidth: 0,
     borderRadius: 5,
     padding: 5,
@@ -432,23 +435,12 @@ const styles = StyleSheet.create({
     color: 'white',
     textAlign: 'center',
     fontWeight: 'bold',
-    // fontSize:32,
   },
 
-  // #49A83A
-  // #F4BD3A
-  // #49A839
-  // #159E98
-  // #3E98D8
-  // #252BD3
-  // #7C1BEF
 
   dateHeaderCell: {
-    // backgroundColor: '#159E98',
-    // borderBottomWidth:1,
     borderWidth: 0,
-
-    borderColor: "#fcba03",
+    borderColor: Color.defaultYellow,
     borderRadius: 5,
     padding: 5
   },
@@ -460,17 +452,11 @@ const styles = StyleSheet.create({
     // color:'white',
   },
 
-  projectRow: {
-    // backgroundColor:'#ffcccc',
-    // borderColor:'red',
-    // borderWidth:1,
-  },
   projectItemCell: {
-    // backgroundColor:'#ffcccc',
     padding: 5
   },
   holiday: {
-    backgroundColor: '#ffdddd',
+    backgroundColor: Color.holiday,
     borderWidth: 0
   },
   holidayTExt: {
@@ -478,17 +464,14 @@ const styles = StyleSheet.create({
   },
 
   headerHoliday: {
-    backgroundColor: '#ffdddd',
+    backgroundColor: Color.holiday,
     borderWidth: 0,
   },
   todayCell: {
     borderWidth: 5,
-    borderColor: '#fcba03'
+    borderColor: Color.defaultYellow
   },
 
-  flexRow: {
-    flexDirection: 'row',
-  }
 
 });
 

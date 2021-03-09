@@ -1,74 +1,68 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   SafeAreaView,
-  FlatList,
   View,
   Text,
   StyleSheet,
-  ScrollView,
-  Button,
   Alert,
-  Modal,
 } from 'react-native';
-import { TextInput, TouchableHighlight, TouchableWithoutFeedback } from 'react-native-gesture-handler';
+import { TouchableHighlight, TouchableWithoutFeedback } from 'react-native-gesture-handler';
+import PlusMark from '../components/PlusMark'
+import { Color, Font, Size } from '../util/global_style'
 
 //component
 import { ModalPicker } from '../components/ModalPicker'
-// db
-// import * as SQLite from 'expo-sqlite';
-import { db } from '../util/db'
 
-//realm
-// import Realm from 'realm'
-// import { realmOptions } from '../config/realm'
+// db
+import { db } from '../util/db'
 
 export default function DateTaskEditScreen({ navigation, route }) {
 
-  const [project, setProject] = useState({});
+  //params
+  const [date, setDate] = useState('');
 
   const [projectId, setProjectId] = useState();
   const [projectName, setProjectName] = useState();
 
-  const [date, setDate] = useState('');
+  const [taskName, setTaskName] = useState('');
 
-  const [taskId, setTaskId] = useState(0);
-  const [taskTimeId, setTaskTimeId] = useState(0);
-  const [taskName, setTaskName] = useState();
+  const [taskTimeId, setTaskTimeId] = useState('')
+  const [taskTime, setTaskTime] = useState('')
 
-  const [name, setName] = useState('');
 
-  // time
-  const [time, setTime] = useState('');
-  const [timeModalVisible, setTimeModalVisible] = useState('');
-  const [timeOption, setTimeOption] = useState('');
-
-  //data
-  const [tasks, setTasks] = useState(taskList);
+  // task modal
+  const [taskPickerData, setTaskPickerData] = useState([]);
+  const [taskMaster, setTaskMaster] = useState([]);
   const [taskModalVisible, setTaskModalVisible] = useState(false);
 
-  //status
-  const [projectIsActive, setProjectIsActive] = useState(false);
-  const [timeIsActive, setTimeIsActive] = useState(false);
+  // time modal
+  const [timeModalVisible, setTimeModalVisible] = useState('');
+
+
 
   /**
    * Use
    */
   useEffect(() => {
-    init();
+    const unsubscribe = navigation.addListener('focus', () => {
+      init()
+    });
+    return unsubscribe
   }, [])
-
-  const timeRef = useRef();
 
   /**
  *  init
  */
   const init = () => {
+    console.log(route.params)
     if (route.params) {
       setDate(route.params.date)
-      // setProject(route.params.project)
-      setProjectId(route.params.projectId)
-      setProjectName(route.params.projectName)
-
+      setProjectId(route.params.project_id)
+      setProjectName(route.params.project_name)
+      setTaskName(route.params.task_name || '')
+      setTaskTime(route.params.task_time || '')
+      setTaskTimeId(route.params.task_time_id || '')
+      select()
     }
   }
 
@@ -76,24 +70,8 @@ export default function DateTaskEditScreen({ navigation, route }) {
   /****
    * event
    */
-  const onFocusProject = () => {
-    setProjectIsActive(true)
-  }
-  const onBlurProject = () => {
-    setProjectIsActive(false)
-    const node = timeRef.current
-    node.focus()
-  }
-
-  const onFocusTime = () => {
-    setTimeIsActive(true)
-  }
-  const onBlurTime = () => {
-    setTimeIsActive(false)
-  }
-
   const onPressSave = () => {
-    const res = insertTask()
+    taskTimeId ? udpateTaskTime() : insertTaskTime()
   }
 
   const onPressDelete = () => {
@@ -107,57 +85,103 @@ export default function DateTaskEditScreen({ navigation, route }) {
     )
   }
 
+  const onPressAddTask = () => {
+    const params = {
+      projectId: projectId,
+      projectName: projectName
+    }
+    navigation.navigate('TaskEdit', params)
+  }
 
   /**
-  * DB
+  * db
   */
-  //TODO:入力チェック
-  const insertTask = () => {
-    console.log("insertTask")
-    const sql = 'INSERT INTO tasks (name, project_id) VALUES (?, ?)';
+  const select = () => {
+    const sql_tasks = "SELECT * FROM tasks WHERE project_id = ?;"
+
+    db.transaction(tx => {
+      tx.executeSql(
+        sql_tasks,
+        [route.params.project_id],
+        (transaction, resultSet) => { createData(resultSet.rows._array || []) },
+        (transaction, error) => { console.log('execute fail', error) }
+      );
+
+    })
+  }
+
+  const createData = (tasks) => {
+    const taskPickerData = tasks.map(task => {
+      return { value: task.name, label: task.name }
+    })
+    setTaskPickerData(taskPickerData)
+    setTaskMaster(tasks)
+  }
+
+
+  const insertTaskTime = () => {
+    const sql = 'INSERT INTO times (date, time, task_id, project_id) VALUES (?, ?, ?, ?)';
+    const taskId = fetchTaskId()
 
     db.transaction(tx => {
       tx.executeSql(
         sql,
-        [name, project.id],
+        [date, taskTime, taskId, projectId],
+        (res, res2) => { console.log('execute success', res2); navigation.goBack() },
+        (object, error) => { console.log('execute fail', error) }
+      );
+    },
+    )
+  }
+
+  const udpateTaskTime = () => {
+    console.log("udpateTaskTime")
+    const sql = 'UPDATE times SET time=?, task_id=?  WHERE id = ?';
+    const taskId = fetchTaskId()
+
+    db.transaction(tx => {
+      tx.executeSql(
+        sql,
+        [taskTime, taskId, taskTimeId],
+        (res, res2) => { console.log('execute success', res2); navigation.goBack() },
+        (object, error) => { console.log('execute fail', error) }
+      );
+    })
+  }
+
+
+  const fetchTaskId = () => {
+    const task = taskMaster.find(task => taskName == task.name)
+    return task.id
+  }
+
+  const destroy = () => {
+    const sql = 'DELETE FROM times WHERE id=?';
+    db.transaction(tx => {
+      tx.executeSql(
+        sql,
+        [taskTimeId],
         (transaction, resultSet) => {
-          insertTaskTime(resultSet.insertId)
+          navigation.goBack()
         },
         (object, error) => { console.log('execute fail', error) }
       );
     })
-  }
 
-  const insertTaskTime = (taskId) => {
-    const sql = 'INSERT INTO times (date,time,task_id, project_id) VALUES (?, ?, ?, ?)';
-    console.log("insertTaskTime", taskId)
-    db.transaction(tx => {
-      tx.executeSql(
-        sql,
-        [date, time, taskId, project.id],
-        () => { console.log('execute success'); navigation.goBack() },
-        (object, error) => { console.log('execute fail', error) }
-      );
-    })
   }
-
 
 
   /**
   * return
   */
 
-  const projectdStyle = projectIsActive ? styles.textInput_active : {}
-  const timedStyle = timeIsActive ? styles.textInput_active : {}
-
-
   const onPressTaskRow = () => {
     setTaskModalVisible(!taskModalVisible)
   }
   const onPressTimeRow = () => {
     setTimeModalVisible(!timeModalVisible)
-
   }
+
 
   /**
    * return
@@ -165,11 +189,6 @@ export default function DateTaskEditScreen({ navigation, route }) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.listWrapper}>
-
-        {/* <View style={styles.header}>
-          <Text style={[styles.field__text, styles.projectNameText]}>{projectName} </Text>
-          <Text style={[styles.field__text, styles.dateText]}>{date}</Text>
-        </View> */}
 
         <TouchableWithoutFeedback style={styles.row}>
           <View style={styles.labelWrapper}><Text style={styles.label__text}>プロジェクト</Text></View>
@@ -185,28 +204,33 @@ export default function DateTaskEditScreen({ navigation, route }) {
         {/* Task */}
         <TouchableWithoutFeedback
           onPress={onPressTaskRow}
-          style={styles.row}
+          style={[styles.row, styles.taskRow]}
           pointerEvents={'auto'}
         >
           <View style={styles.labelWrapper}><Text style={styles.label__text}>タスク</Text></View>
           <View style={styles.valueWrapper}>
-            <TextInput
-              onChangeText={(text) => setName(text)}
-              value={taskName}
-              placeholder={'タスクを選択してください'}
-              placeholderTextColor={'#888'}
-              // autoFocus={true}
-              style={[styles.textInput]}
-              editable={false}
-            />
+            {taskName == '' && <Text style={[styles.textInput, { color: '#888' }]}>タスクを選択してください</Text>}
+            {taskName !== '' && <Text style={styles.textInput}>{taskName}</Text>}
           </View>
+
         </TouchableWithoutFeedback>
+
+        <View style={{ width: '100%', alignItems: 'flex-end', borderBottomWidth: 0.5, backgroundColor: '#fff' }}>
+          <PlusMark
+            onPress={onPressAddTask}
+            style={{ backgroundColor: '#fff', height: 50, alignItems: 'flex-end', paddingRight: 30 }}
+            size={25}
+          />
+
+        </View>
         <ModalPicker
-          data={tasks}
+          data={taskPickerData}
           modalVisible={taskModalVisible}
           onClose={() => { setTaskModalVisible(false) }}
           selectedValue={taskName}
-          onValueChange={(v) => { setTaskName(v) }}
+          onValueChange={(v) => {
+            setTaskName(v)
+          }}
         >
         </ModalPicker>
 
@@ -219,25 +243,19 @@ export default function DateTaskEditScreen({ navigation, route }) {
         >
           <View style={styles.labelWrapper}><Text style={styles.label__text}>時間</Text></View>
           <View style={styles.valueWrapper}>
-            <TextInput
-              placeholder={'作業時間を選択してください'}
-              placeholderTextColor={'#888'}
-              value={timeOption}
-              onChangeText={(text) => setTime(text)}
-              keyboardType={'number-pad'}
-              style={[styles.textInput, styles.time, timedStyle]}
-              editable={false}
-            />
+
+            {taskTime == '' && <Text style={[styles.textInput, { color: '#888' }]}>作業時間を選択してください</Text>}
+            {taskTime !== '' && <Text style={styles.textInput}>{taskTime}</Text>}
 
           </View>
         </TouchableWithoutFeedback>
       </View>
       <ModalPicker
-        data={timeOptions}
+        data={timePickerData}
         modalVisible={timeModalVisible}
         onClose={() => { setTimeModalVisible(false) }}
-        selectedValue={timeOption}
-        onValueChange={(v) => { setTimeOption(v) }}
+        selectedValue={taskTime}
+        onValueChange={(v) => { setTaskTime(v) }}
       >
       </ModalPicker>
 
@@ -252,7 +270,7 @@ export default function DateTaskEditScreen({ navigation, route }) {
         </TouchableHighlight>
       </View>
 
-      {project &&
+      {projectId != '' &&
         <View style={styles.field} >
           <TouchableHighlight
             style={styles.deleteButton}
@@ -284,39 +302,38 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     padding: 10,
-    height: 50,
-
+    height: Size.cell_height,
     borderBottomWidth: 0.5,
     alignItems: 'center',
     backgroundColor: "#fff"
   },
+  taskRow: {
+    borderBottomWidth: 0,
+  },
   labelWrapper: {
-    marginLeft: 20
+    marginLeft: Size.cell_padding_left
   },
   label__text: {
     fontWeight: 'bold',
-    fontSize: 16
+
   },
   valueWrapper: {
     flex: 1,
     marginRight: 20,
-    alignItems: 'flex-end'
+    alignItems: 'flex-end',
+    justifyContent: 'center',
   },
-  value__text: {
-
-  },
-
   header: {
     margin: 20,
     marginBottom: 0,
   },
   projectNameText: {
     fontWeight: "bold",
-    fontSize: 25,
+    fontSize: Font.labelSize,
   },
   dateText: {
     fontWeight: "bold",
-    color: 'gray'
+
   },
   field: {
     margin: 20,
@@ -325,46 +342,23 @@ const styles = StyleSheet.create({
 
   field__text: {
     marginBottom: 20,
-    fontSize: 16,
+
   },
 
   textInput: {
-    // borderBottomWidth: 1,
-    // borderColor: 'gray',
     padding: 5,
     borderRadius: 5,
-    fontSize: 16,
-
     textAlign: 'right'
 
   },
-  textInput_active: {
-    // borderColor: '#ed7d3b',
-    // borderBottomWidth: 1,
-    // color:'#ed7d3b',
-  },
-  taskName: {
-    width: '100%'
-  },
-
-
   time_row: {
     flexDirection: 'row',
     alignItems: 'center'
   },
-  time_row__text: {
-    // marginLeft: 10,
-
-  },
-  time: {
-    // width: 50,
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
   saveButton: {
-    backgroundColor: '#4287f5',
-    width: 200,
-    height: 40,
+    backgroundColor: Color.saveButton,
+    width: Size.button_with,
+    height: Size.button_height,
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'center',
@@ -374,9 +368,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold'
   },
   deleteButton: {
-    backgroundColor: '#f54842',
-    width: 200,
-    height: 40,
+    backgroundColor: Color.deleteButton,
+    width: Size.button_with,
+    height: Size.button_height,
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'center',
@@ -391,56 +385,27 @@ const styles = StyleSheet.create({
   },
   taskList: {
     borderWidth: 1,
-    borderColor: 'gray',
+    borderColor: Color.borderColor,
     marginTop: 0
   },
   separator: {
     borderWidth: 0.5,
-    borderColor: 'gray',
+    borderColor: Color.borderColor,
     marginLeft: 10
-
   },
   listCell: {
-    // marginVertical: 5,
     flexDirection: 'row',
-    height: 44,
-    marginLeft: 10,
-    // justifyContent: 'center'
+    height: Size.cell_height,
     alignItems: 'center',
-
+    marginLeft: 10,
   },
-  listText: {
-    // fontSize: 20,
-    // fontWeight:'bold'
-  },
-  btnWrapper: {
-    marginLeft: 20
-  }
 });
 
-
-const taskList = [
-  '画面設計',
-  '画面設計2',
-  '画面設計3',
-  '画面設計4',
+const timePickerData = [
+  { label: '0.5', value: '0.5' },
+  { label: '1.0', value: '1.0' },
+  { label: '1.5', value: '1.5' },
+  { label: '2.0', value: '2.0' },
+  { label: '2.5', value: '2.5' },
 ]
 
-
-const timeOptions = [
-  '0.5',
-  '1.5',
-  '2.0',
-  '2.5',
-  '3.0',
-  '3.5',
-  '4.5',
-  '5.0',
-  '5.5',
-  '6.0',
-  '6.5',
-  '7.0',
-  '7.5',
-  '8.0',
-
-]

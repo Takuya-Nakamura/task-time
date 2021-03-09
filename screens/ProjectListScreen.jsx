@@ -10,8 +10,8 @@ import {
   TextInput
 } from 'react-native';
 import { TouchableWithoutFeedback } from 'react-native-gesture-handler';
-
 import { useFocusEffect } from '@react-navigation/native';
+import { Color, Font, Size } from '../util/global_style'
 
 // db
 import * as SQLite from 'expo-sqlite';
@@ -19,8 +19,7 @@ import * as SQLite from 'expo-sqlite';
 
 export default function ProjectListScreen(props) {
 
-  const [projects, setProjects] = useState(projectsData);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [projects, setProjects] = useState([]);
   const [projectFocused, setProjectFocused] = useState(false);
   const [timeFocused, setTimeFocused] = useState(false);
 
@@ -30,12 +29,6 @@ export default function ProjectListScreen(props) {
     setHeader()
   }, [])
 
-  // useFocusEffect(
-  //   React.useCallback(() => {
-  //     console.log("useFocusEffect")
-  //     select()
-  //   })
-  // );
   useFocusEffect(() => {
       select()
   });
@@ -66,7 +59,7 @@ export default function ProjectListScreen(props) {
   }
 
   /****
-   * DB
+   * db
    */
   const select = () => {
     const db = SQLite.openDatabase('db')
@@ -147,41 +140,28 @@ export default function ProjectListScreen(props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // flexDirection: 'column',
-    // alignItems: 'center',
-    // justifyContent: 'center',
-    backgroundColor: '#fff',
-
   },
   listWrapper: {
     borderWidth: 1,
-    borderColor: 'gray',
-    // borderBottomWidth: 1,
+    borderColor: Color.borderColor,
     
   },
   listCell: {
-    height: 44,
+    height: Size.cell_height,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     backgroundColor: '#fff',
     borderBottomWidth: 0.5,
-
-
   },
   listCell__text: {
     flex: 1,
-    paddingLeft:20,
-    // textAlign: 'center'
+    paddingLeft:Size.cell_padding_left,
   },
   listCell__arrow: {
-    width:30
+    width:Size.cell_icon_width
   },
 
-  separator: {
-    // borderTopWidth: 1,
-    // borderColor: 'gray'
-  },
   addProjectBtn: {
     backgroundColor: "#ccffff",
     height: 40,
@@ -194,40 +174,4 @@ const styles = StyleSheet.create({
 
 });
 
-
-const projectsData = [
-  '1',
-  '2',
-  '3',
-  '4',
-  '5',
-  '6',
-
-  // 'プロジェクト1',
-  // 'プロジェクト2',
-  // 'プロジェクト3',
-  // 'プロジェクト4',
-  // 'プロジェクト5',
-  // 'プロジェクト6',
-  // 'プロジェクト7',
-  // 'プロジェクト8',
-  // 'プロジェクト9',
-  // 'プロジェクト10',
-  // 'プロジェクト11',
-  // 'プロジェクト12',
-  // 'プロジェクト13',
-  // 'プロジェクト14',
-  // 'プロジェクト15',
-  // 'プロジェクト16',
-  // 'プロジェクト17',
-  // 'プロジェクト14',
-  // 'プロジェクト15',
-  // 'プロジェクト16',
-  // 'プロジェクト17',
-  // 'プロジェクト14',
-  // 'プロジェクト15',
-  // 'プロジェクト16',
-  // 'プロジェクト17',
-
-]
 

@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import {
   SafeAreaView,
@@ -17,21 +19,23 @@ import { db } from '../util/db'
 export default function DateTaskListScreen({ navigation, route }) {
 
   const [date, setDate] = useState('');
-  // const [project, setProject] = useState('');
+
+
+  // for 
+  const [project, setProject] = useState('');
 
   //data
-  // const [tasks, setTasks] = useState(tasks);
+  const [tasks, setTasks] = useState(tasks);
   const [taskTime, setTaskTime] = useState([]);
 
   /**
    * Use
    */
   useEffect(() => {
-    
-     const unsubscribe = navigation.addListener('focus', () => {
+     = navigation.addListener('focus', () => {
       init()
     });
-    return unsubscribe;
+
   }, [])
 
 
@@ -41,7 +45,7 @@ export default function DateTaskListScreen({ navigation, route }) {
   const init = () => {
     if (route.params) {
       setDate(route.params.date)
-      // setProject(route.params.project || null)
+      setProject(route.params.project || null)
       select(route.params.date, route.params.project)
     }
 
@@ -146,7 +150,8 @@ export default function DateTaskListScreen({ navigation, route }) {
 
     const taskTimeData = projects.map((project) => {
       const tasktimes = times.filter((time) => time.project_id == project.id)
-      const projectTime = tasktimes.length ? tasktimes.reduce((a, c) =>  a + parseFloat(c.time), 0) : 0
+
+      const projectTime = tasktimes.length ? tasktimes.reduce((a, c) => a + parseInt(c.time), 0) : 0
       return {
         project_id: project.id,
         project_name: project.name,
@@ -257,7 +262,6 @@ const styles = StyleSheet.create({
   },
   projectTimeText: {
     marginRight: 30,
-    fontWeight:'bold'
 
   },
   taskList: {

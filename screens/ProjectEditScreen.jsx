@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   SafeAreaView,
-  FlatList,
   View,
   Text,
   StyleSheet,
   ScrollView,
-  Button,
   Alert,
 
 } from 'react-native';
 import { TextInput, TouchableHighlight, TouchableWithoutFeedback } from 'react-native-gesture-handler';
+import PlusMark from '../components/PlusMark'
+import { Color, Font, Size } from '../util/global_style'
 
 // db
 import * as SQLite from 'expo-sqlite';
@@ -39,7 +39,7 @@ export default function ProjectEditScreen({ navigation, route }) {
       init();
       // createData()
     });
-
+    return unsubscribe
   }, [])
 
   const timeRef = useRef();
@@ -84,6 +84,7 @@ export default function ProjectEditScreen({ navigation, route }) {
       );
 
     })
+
   }
 
 
@@ -178,13 +179,15 @@ export default function ProjectEditScreen({ navigation, route }) {
 
   const onPressAddTask = () => {
     const params = {
-      projectId: id
+      projectId: id,
+      projectName: name
     }
     navigation.navigate('TaskEdit', params)
   }
   const onPressTask = (task) => {
     const params = {
       projectId: id,
+      projectName: name,
       taskId: task.id,
       taskName: task.name
     }
@@ -210,10 +213,10 @@ export default function ProjectEditScreen({ navigation, route }) {
         <View style={styles.field} >
           <View style={styles.task_row}>
             <Text style={styles.task_text}>タスク</Text>
+
             <View style={styles.addButton__wrapper}>
-              <TouchableWithoutFeedback style={styles.addButton} onPress={onPressAddTask}>
-                <Text style={styles.addButton__text}>＋</Text>
-              </TouchableWithoutFeedback>
+              <PlusMark size={25} onPress={onPressAddTask}
+              />
             </View>
           </View>
         </View>
@@ -247,7 +250,7 @@ export default function ProjectEditScreen({ navigation, route }) {
         }
 
 
-        
+
       </>
     )
   }
@@ -334,7 +337,6 @@ export default function ProjectEditScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff"
   },
 
   row: {
@@ -348,18 +350,17 @@ const styles = StyleSheet.create({
   },
   field__text: {
     marginBottom: 20,
-    fontSize: 16,
+    fontSize: Font.default,
     fontWeight: 'bold'
 
   },
   task_text: {
-    fontSize: 16,
+    fontSize: Font.default,
     fontWeight: 'bold'
   },
   task_row: {
     flexDirection: 'row',
     alignItems: 'center',
-    // marginBottom: 16
   },
 
   textInput: {
@@ -371,21 +372,13 @@ const styles = StyleSheet.create({
 
   },
   textInput_active: {
-    borderColor: '#ed7d3b',
+    borderColor: Color.defaultOrange,
     borderBottomWidth: 1,
-    // color:'#ed7d3b',
   },
 
-  projectName: {
-
-  },
   time_row: {
     flexDirection: 'row',
     alignItems: 'center'
-  },
-  time_row__text: {
-    // marginLeft: 10,
-
   },
   time: {
     width: 50,
@@ -393,9 +386,9 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   saveButton: {
-    backgroundColor: '#4287f5',
-    width: 200,
-    height: 40,
+    backgroundColor: Color.saveButton,
+    width: Size.button_with,
+    height: Size.button_height,
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'center',
@@ -405,9 +398,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold'
   },
   deleteButton: {
-    backgroundColor: '#f54842',
-    width: 200,
-    height: 40,
+    backgroundColor: Color.deleteButton,
+    width: Size.button_with,
+    height: Size.button_height,
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'center',
@@ -419,12 +412,9 @@ const styles = StyleSheet.create({
   },
   taskItem: {
     flexDirection: 'row',
-    height: 40,
+    height: Size.cell_height,
     borderBottomWidth: 0.5,
-    // justifyContent: 'center',
-    // alignContent:'center',
     alignItems: 'center',
-    // marginBottom: 5,
     padding: 5,
     paddingLeft: 20,
     borderColor: 'gray',
@@ -439,30 +429,8 @@ const styles = StyleSheet.create({
   addButton__wrapper: {
     marginLeft: 20
   },
-  addButton: {
-    backgroundColor: '#E02729',
-    height: 24,
-    width: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 12,
-  },
-  addButton__text: {
-    color: "white",
-    fontSize: 24,
-
-  }
 
 
 });
 
 
-
-// const tasks = [
-//   'task_1',
-//   'task_2',
-//   'task_3',
-//   'task_4',
-//   'task_5',
-//   'task_6',
-// ]

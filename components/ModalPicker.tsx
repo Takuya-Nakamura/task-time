@@ -1,8 +1,10 @@
-import React from 'react'
+import React, { useRef } from 'react'
 import { StyleSheet, Image, TouchableWithoutFeedback, View, Text, Modal, Platform, Dimensions, Animated, TouchableOpacity } from 'react-native'
 // import { WheelPicker } from 'react-native-wheel-picker-android'
 // import { Color, Font, Size } from '../../global_styles'
 import { Picker } from '@react-native-picker/picker';
+
+const isAndroid = Platform.OS === 'android'
 
 interface Props {
   placeholder?: string
@@ -40,7 +42,6 @@ export class ModalPicker extends React.Component<Props, State> {
 
   constructor(props: Props) {
     super(props)
-
 
     this.state = {
       modalMarginTop: new Animated.Value(height),
@@ -118,7 +119,11 @@ export class ModalPicker extends React.Component<Props, State> {
   _renderModalHeader = () => {
     return (
       <View style={styles.header}>
+        {isAndroid === true &&
+          <View style={styles.header__hint}><Text style={styles.header__hint__text}>ラベルをタッチしてメニューを開いてください</Text></View>
+        }
         <TouchableOpacity style={styles.button__right} onPress={this._closePicker}>
+
           <Text style={styles.button__text}>✗</Text>
         </TouchableOpacity>
       </View>
@@ -134,11 +139,10 @@ export class ModalPicker extends React.Component<Props, State> {
         <Picker
           style={{ width: width, backgroundColor: '#e1e1e1' }}
           onValueChange={this.props.onValueChange}
-
           selectedValue={selectedValue}
           mode="dropdown"
         >
-          {data.map((item) => <Picker.Item label={item} value={item} />)}
+          {data.map((item) => <Picker.Item label={item.label} value={item.value} />)}
         </Picker>
 
         {/* <WheelPicker
@@ -234,6 +238,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#D5D5D5',
     justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  header__hint: {
+    flex: 1,
+    paddingLeft: 5
+  },
+  header__hint__text: {
+    fontSize: 10
   },
   button__right: {
     alignSelf: 'flex-end',
@@ -250,7 +263,7 @@ const styles = StyleSheet.create({
 
 
   picker__container: {
-    flexDirection: 'row',
+    // flexDirection: 'row',
     alignItems: 'center',
     // height: modalHeight - 50
   },
