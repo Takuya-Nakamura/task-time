@@ -10,7 +10,9 @@ import {
 } from 'react-native';
 import { TextInput, TouchableHighlight, TouchableWithoutFeedback } from 'react-native-gesture-handler';
 import PlusMark from '../components/PlusMark'
-import { Color, Font, Size } from '../util/global_style'
+import CheckMark from '../components/CheckMark'
+import { Color, Font, Size, projectColor, getColor } from '../util/global_style'
+
 
 // db
 import * as SQLite from 'expo-sqlite';
@@ -21,10 +23,12 @@ import * as SQLite from 'expo-sqlite';
 
 export default function ProjectEditScreen({ navigation, route }) {
 
-  const [id, setId] = useState();
+  const [id, setId] = useState(null);
   const [name, setName] = useState();
   const [time, setTime] = useState();
   const [tasks, setTasks] = useState([]);
+  const [color, setColor] = useState(getColor(1));
+  const [colorId, setColorId] = useState(1);
 
   const [projectIsActive, setProjectIsActive] = useState(false);
   const [timeIsActive, setTimeIsActive] = useState(false);
@@ -42,6 +46,7 @@ export default function ProjectEditScreen({ navigation, route }) {
     return unsubscribe
   }, [])
 
+  const nameRef = useRef();
   const timeRef = useRef();
 
   /**
@@ -61,7 +66,7 @@ export default function ProjectEditScreen({ navigation, route }) {
   const select = (id) => {
     const db = SQLite.openDatabase('db')
     const sql = 'SELECT * FROM Projects WHERE id = ?';
-    const sql2 = 'SELECT * FROM tasks WHERE project_id = ?';
+    const sql2 = 'SELECT * FROM tasks WHERE project_id = ? and deleted=0';
     db.transaction(tx => {
       tx.executeSql(
         sql,
@@ -71,6 +76,8 @@ export default function ProjectEditScreen({ navigation, route }) {
           setId(data.id)
           setName(data.name)
           setTime(data.time)
+          setColorId(data.color)
+
         },
         (object, error) => { console.log('execute fail', error) }
       );
@@ -82,21 +89,18 @@ export default function ProjectEditScreen({ navigation, route }) {
         },
         (object, error) => { console.log('execute fail', error) }
       );
-
     })
-
   }
 
 
   const insert = () => {
-    console.log("insert", [name, time])
     const db = SQLite.openDatabase('db')
-    const sql = 'INSERT INTO Projects (name, time) VALUES (?, ?)';
+    const sql = 'INSERT INTO projects (name, time, color ) VALUES (?, ?, ?)';
 
     db.transaction(tx => {
       tx.executeSql(
         sql,
-        [name, time],
+        [name, time, colorId],
         (transaction, resultSet) => {
           navigation.goBack()
         },
@@ -109,15 +113,14 @@ export default function ProjectEditScreen({ navigation, route }) {
 
   const update = () => {
     const db = SQLite.openDatabase('db')
-    const sql = 'UPDATE Projects SET name=?, time=? WHERE id=?';
+    const sql = 'UPDATE projects SET name=?, time=?, color=? WHERE id=?';
 
     db.transaction(tx => {
       tx.executeSql(
         sql,
-        [name, time, id],
+        [name, time, colorId, id],
         (transaction, resultSet) => {
           navigation.goBack()
-
         },
         (object, error) => { console.log('execute fail', error) }
       );
@@ -126,9 +129,8 @@ export default function ProjectEditScreen({ navigation, route }) {
   }
 
   const destroy = () => {
-    console.log("destroy", destroy)
     const db = SQLite.openDatabase('db')
-    const sql = 'DELETE FROM Projects WHERE id=?';
+    const sql = 'UPDATE projects SET deleted=1 WHERE id=?';
 
     db.transaction(tx => {
       tx.executeSql(
@@ -147,25 +149,21 @@ export default function ProjectEditScreen({ navigation, route }) {
   /****
    * event
    */
-  const onFocusProject = () => {
-    setProjectIsActive(true)
-  }
-  const onBlurProject = () => {
-    setProjectIsActive(false)
-    const node = timeRef.current
+  const onPressLabel = (ref) => {
+    const node = ref.current
     node.focus()
   }
 
-  const onFocusTime = () => {
-    setTimeIsActive(true)
-  }
-  const onBlurTime = () => {
-    setTimeIsActive(false)
-  }
-
   const onPressSave = () => {
-    id ? update() : insert()
+
+    const errors = []
+    if (!name) {
+      alert("プロジェクト名を入力してください。")
+    }else{
+      id ? update() : insert()
+    }
   }
+  
   const onPressDelete = () => {
     Alert.alert(
       "削除しますか？",
@@ -195,14 +193,10 @@ export default function ProjectEditScreen({ navigation, route }) {
 
   }
 
-
-  /**
-  * navigation
-  */
-  const back = () => {
-
+  const onPressColor = (item) => {
+    setColor(item.color)
+    setColorId(item.id)
   }
-
 
   /**
   * render
@@ -215,8 +209,7 @@ export default function ProjectEditScreen({ navigation, route }) {
             <Text style={styles.task_text}>タスク</Text>
 
             <View style={styles.addButton__wrapper}>
-              <PlusMark size={25} onPress={onPressAddTask}
-              />
+              <PlusMark size={35} onPress={onPressAddTask} />
             </View>
           </View>
         </View>
@@ -249,9 +242,42 @@ export default function ProjectEditScreen({ navigation, route }) {
           </View>
         }
 
-
-
       </>
+    )
+  }
+
+  const _renderColor = () => {
+    const colors1 = projectColor.slice(0, 5)
+    const colors2 = projectColor.slice(5, 10)
+
+    return (
+      <View style={styles.field} >
+        <Text style={styles.field__text}>テーマカラー</Text>
+
+        <View style={styles.color_row}>
+          {colors1.map(item => _renderColorCell(item))}
+        </View>
+
+        <View style={styles.color_row}>
+          {colors2.map(item => _renderColorCell(item))}
+        </View>
+
+      </View>
+    )
+  }
+  const _renderColorCell = (item) => {
+    return (
+      <TouchableWithoutFeedback
+        onPress={() => onPressColor(item)}
+        style={[styles.color_cell, { backgroundColor: item.color }]}>
+
+        <CheckMark
+          on={colorId == item.id}
+          size={35}
+          fill={'#fff'}
+        ></CheckMark>
+
+      </TouchableWithoutFeedback>
     )
   }
 
@@ -261,44 +287,49 @@ export default function ProjectEditScreen({ navigation, route }) {
 
   const projectdStyle = projectIsActive ? styles.textInput_active : {}
   const timedStyle = timeIsActive ? styles.textInput_active : {}
-
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
         <View style={styles.field}>
-          <Text style={[styles.field__text]}>プロジェクト名</Text>
-          <TextInput
-            onChangeText={(text) => setName(text)}
-            value={name}
-            placeholder={'Webアプリ開発'}
-            autoFocus={true}
-            style={[styles.textInput, styles.projectName, projectdStyle]}
-            onFocus={onFocusProject}
-            onBlur={onBlurProject}
-          >
-          </TextInput>
+          <TouchableWithoutFeedback style={styles.field__row} onPress={() => onPressLabel(nameRef)}>
+            <Text style={[styles.field__text]}>プロジェクト名</Text>
+            <TextInput
+              onChangeText={(text) => setName(text)}
+              value={name}
+              placeholder={'Ex. 開発'}
+              // autoFocus={false}
+              style={[styles.textInput, projectdStyle]}
+              ref={nameRef}
+              maxLength={25}
+            >
+            </TextInput>
+          </TouchableWithoutFeedback>
         </View>
 
 
 
         <View style={styles.field} >
-          <Text style={styles.field__text}>一ヶ月の想定作業時間</Text>
-          <View style={styles.time_row}>
+          <TouchableWithoutFeedback style={styles.field__row} onPress={() => onPressLabel(timeRef)}>
+            <Text style={styles.field__text}>一ヶ月の想定作業時間</Text>
             <TextInput
               placeholder={'30'}
               value={time}
               onChangeText={(text) => setTime(text)}
               keyboardType={'number-pad'}
-              style={[styles.textInput, styles.time, timedStyle]}
-              onFocus={onFocusTime}
-              onBlur={onBlurTime}
+              style={[styles.textInput, timedStyle]}
               ref={timeRef}
             >
             </TextInput>
+
             <Text style={styles.time_row__text}>時間</Text>
-          </View>
+          </TouchableWithoutFeedback>
+
         </View>
 
+
+
+
+        {_renderColor()}
 
         {id != null && _renderTasks()}
 
@@ -323,8 +354,6 @@ export default function ProjectEditScreen({ navigation, route }) {
           </View>
         }
       </ScrollView>
-
-
     </SafeAreaView>
   );
 
@@ -348,6 +377,11 @@ const styles = StyleSheet.create({
   field: {
     margin: 20,
   },
+  field__row: {
+    flexDirection: 'row',
+    alignItems: 'center'
+
+  },
   field__text: {
     marginBottom: 20,
     fontSize: Font.default,
@@ -368,7 +402,10 @@ const styles = StyleSheet.create({
     borderColor: 'gray',
     padding: 5,
     borderRadius: 5,
-    fontSize: 16,
+    fontSize: 18,
+    flex: 1,
+    marginLeft: 20,
+    textAlign: 'right'
 
   },
   textInput_active: {
@@ -380,8 +417,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center'
   },
-  time: {
+  color_row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  color_cell: {
     width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center'
+
+  },
+
+  time: {
+    width: 100,
     flexDirection: 'row',
     alignItems: 'center'
   },
@@ -412,7 +462,7 @@ const styles = StyleSheet.create({
   },
   taskItem: {
     flexDirection: 'row',
-    height: Size.cell_height,
+    height: Size.row_height,
     borderBottomWidth: 0.5,
     alignItems: 'center',
     padding: 5,

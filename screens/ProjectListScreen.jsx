@@ -5,13 +5,13 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
-  Button,
-  TextInput
+  Animated,
+  Image
 } from 'react-native';
 import { TouchableWithoutFeedback } from 'react-native-gesture-handler';
 import { useFocusEffect } from '@react-navigation/native';
-import { Color, Font, Size } from '../util/global_style'
+import { Color, Font, getColor, Size } from '../util/global_style'
+import DraggableFlatList  from 'react-native-draggable-flatlist';
 
 // db
 import * as SQLite from 'expo-sqlite';
@@ -20,21 +20,17 @@ import * as SQLite from 'expo-sqlite';
 export default function ProjectListScreen(props) {
 
   const [projects, setProjects] = useState([]);
-  const [projectFocused, setProjectFocused] = useState(false);
-  const [timeFocused, setTimeFocused] = useState(false);
-
+  const [itemScale, setItemScale] = useState(new Animated.Value(1));
   useEffect(() => {
-    console.log("useEffect")
     //main
     setHeader()
-  }, [])
 
-  useFocusEffect(() => {
+    const unsubscribe = props.navigation.addListener('focus', () => {
       select()
-  });
+    });
+    return unsubscribe
 
-  const timeInputRef = useRef();
-
+  }, [])
 
 
   /**
@@ -58,12 +54,33 @@ export default function ProjectListScreen(props) {
     props.navigation.navigate('ProjectEdit')
   }
 
+  const _itemOnLongPress = (drag) => {
+    _itemTransformAnimation(0.9)
+    drag();
+  }
+  const _onDragEnd = ({ data }) => {
+    setProjects(data)
+    data.map((item, index) =>{
+      updateOrder(item.id, index)
+    })
+    
+  }
+
+  const _itemTransformAnimation = (toValue) => {
+    Animated.timing(itemScale, {
+        toValue: toValue,
+        duration: 200,
+        useNativeDriver: true,
+    }).start();
+}
+
+
   /****
    * db
    */
   const select = () => {
     const db = SQLite.openDatabase('db')
-    const sql = 'SELECT * FROM Projects';
+    const sql = 'SELECT * FROM Projects WHERE deleted=0 ORDER BY sort_order';
     
     db.transaction(tx => {
       tx.executeSql(
@@ -79,15 +96,52 @@ export default function ProjectListScreen(props) {
     )
   }
 
+  const updateOrder = (id, sort_order ) =>{
+    const db = SQLite.openDatabase('db')
+    const sql = 'UPDATE projects SET sort_order=? WHERE id=?';
+    
+    db.transaction(tx => {
+      tx.executeSql(
+        sql,
+        [sort_order, id],
+        (transaction, resultSet) => {},
+        (transaction, error) => { console.log('execute fail', error) }
+      );
+    },
+    )
+  }
+
+
   /****
    * Render
    */
-  const _renderListCell = (item) => {
+  const _renderListCell = ({ item, index, drag, isActive }) => {
+    const dColor = getColor(item.color)
+    console.log(item)
+    
+    const activeStyle = {
+      // backgroundColor: "#ffdddd",
+      // borderColor: "red",
+      // borderWidth: 1,
+      transform: [
+          { scale: itemScale },
+      ],
+  };
+
+  const dStyle = isActive ? activeStyle : []
+
+    const AnimatedTouchable = Animated.createAnimatedComponent(TouchableWithoutFeedback);
+
     return (
-      <TouchableWithoutFeedback style={styles.listCell} onPress={() => _navigateToEdit(item.id)}>
+      <AnimatedTouchable 
+        style={[styles.listCell,dStyle]} 
+        onPress={() => _navigateToEdit(item.id)}
+        onLongPress={() => _itemOnLongPress(drag)}
+      >
+        <View style={[styles.listCell__color, {backgroundColor:dColor}]}></View>
         <Text style={styles.listCell__text}>{item.name}</Text>
         <Text style={styles.listCell__arrow}> {'>'} </Text>
-      </TouchableWithoutFeedback>
+      </AnimatedTouchable>
     )
   }
   
@@ -101,7 +155,11 @@ export default function ProjectListScreen(props) {
         onPress={onPressAdd}
         style={styles.addProjectBtn}
       >
-        <Text>ADD</Text>
+        <Image
+            source={require('../assets/plus.png')}
+            style={styles.addProjectBtn__Image}
+          />
+
       </TouchableWithoutFeedback>
     )
   }
@@ -110,21 +168,21 @@ export default function ProjectListScreen(props) {
   /**
    * return
    */
-  const dStyle = {
-    project: projectFocused ? styles.focused : {},
-    time: timeFocused ? styles.focused : {},
-  }
 
   return (
 
     <SafeAreaView style={styles.container}>
-      <FlatList
+      
+      <DraggableFlatList
         style={styles.listWrapper}
         data={projects}
         keyExtractor={(item, index) => `pj_${index}`}
-        renderItem={(data) => _renderListCell(data.item)}
+        // renderItem={(data) => _renderListCell(data.item)}
+        renderItem={_renderListCell}
         ItemSeparatorComponent={() => _listSeparator()}
         bounces={false}
+        onDragEnd={_onDragEnd}
+
       />
 
 
@@ -147,30 +205,38 @@ const styles = StyleSheet.create({
     
   },
   listCell: {
-    height: Size.cell_height,
+    height: Size.row_height,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     backgroundColor: '#fff',
     borderBottomWidth: 0.5,
   },
+  listCell__color:{
+    width:20,
+    height:20,
+    borderRadius:20,
+    backgroundColor:"red",
+    marginLeft:Size.cell_padding_left,
+  },
   listCell__text: {
     flex: 1,
-    paddingLeft:Size.cell_padding_left,
+    marginLeft:Size.cell_padding_left,
   },
   listCell__arrow: {
     width:Size.cell_icon_width
   },
 
-  addProjectBtn: {
-    backgroundColor: "#ccffff",
-    height: 40,
-    width: 40,
-    marginRight: 30,
+  addProjectBtn: {    
+    marginRight:30,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 20
   },
+  addProjectBtn__Image: {
+    width:30,
+    height:30
+  },
+
 
 });
 

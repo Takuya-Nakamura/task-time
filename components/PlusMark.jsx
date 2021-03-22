@@ -24,7 +24,8 @@ export default class PlusMark extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      fill: this.props.fill || "#49A839"
+      fill: this.props.fill || "#49A839",
+      svgScale: new Animated.Value(0)
     };
   }
 
@@ -34,7 +35,7 @@ export default class PlusMark extends Component {
 
   }
 
-
+a
   _svgScaleAnimation = () => {
     const { svgScale } = this.state
 
@@ -43,10 +44,10 @@ export default class PlusMark extends Component {
       duration: duration,
       useNativeDriver: false,
     }).start();
+
   }
 
-
-
+  
   /************************************
   * Render
   *************************************/

@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   },
 
   listCell: {
-    height: Size.cell_height,
+    height: Size.row_height,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',

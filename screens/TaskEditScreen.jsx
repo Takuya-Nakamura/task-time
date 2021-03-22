@@ -48,10 +48,10 @@ export default function TaskEditScreen({ navigation, route }) {
    */
 
   const onPressSave = () => {
-    if (taskId) {
-      updateTask()
+    if (!taskName) {
+      alert('タスク名を入力してく')
     } else {
-      insertTask()
+      taskId ? updateTask() : insertTask()
     }
   }
 
@@ -99,7 +99,8 @@ export default function TaskEditScreen({ navigation, route }) {
     })
   }
   const destroy = () => {
-    const sql = 'DELETE FROM tasks WHERE id=?';
+    // const sql = 'DELETE FROM tasks WHERE id=?';
+    const sql = 'UPDATE tasks SET deleted=1 WHERE id = ?';
 
     db.transaction(tx => {
       tx.executeSql(

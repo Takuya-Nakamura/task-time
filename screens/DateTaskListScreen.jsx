@@ -27,7 +27,6 @@ export default function DateTaskListScreen({ navigation, route }) {
    * Use
    */
   useEffect(() => {
-    
      const unsubscribe = navigation.addListener('focus', () => {
       init()
     });
@@ -53,13 +52,14 @@ export default function DateTaskListScreen({ navigation, route }) {
    */
 
   const navigateToDateTaskEdit = (project, task = {}) => {
-    console.log("navigateToDateTaskEdit")
+    console.log("navigateToDateTaskEdit", task)
     let task_params = {}
     if (task) {
       task_params = {
         task_time: task.time,
         task_time_id: task.id,
         task_name: task.task_name,
+        task_memo: task.memo,
       }
     }
     const params = {
@@ -82,21 +82,22 @@ export default function DateTaskListScreen({ navigation, route }) {
     let sql_times = "\
       SELECT  \
       times.id as id, times.time as time,\
+      times.memo as memo, \
       tasks.name as task_name, \
       projects.name as project_name, projects.time as project_time, projects.id as project_id  \
       FROM times \
       LEFT OUTER JOIN  projects  ON times.project_id = projects.id \
       LEFT OUTER JOIN  tasks ON times.task_id = tasks.id \
-      WHERE times.date=? \
+      WHERE times.date=? AND times.deleted=0 \
     "
     let params_times = [date]
 
-    let sql_projects = 'SELECT * from projects '
+    let sql_projects = 'SELECT * from projects WHERE deleted=0'
     let params_projects = []
 
     if (project) {
       sql_times += ' AND times.project_id = ?'
-      sql_projects += ' WHERE id = ?'
+      sql_projects += ' AND id = ?'
       params_times.push(project.id)
       params_projects.push(project.id)
     }
@@ -107,7 +108,7 @@ export default function DateTaskListScreen({ navigation, route }) {
         (transaction, resultSet) => {
           times_for_create = resultSet.rows._array || []
         },
-        (transaction, error) => { console.log('execute fail 1', error) }
+        (transaction, error) => { console.log('execute fail 11', error) }
       );
       tx.executeSql(
         sql_projects,
@@ -146,6 +147,7 @@ export default function DateTaskListScreen({ navigation, route }) {
 
     const taskTimeData = projects.map((project) => {
       const tasktimes = times.filter((time) => time.project_id == project.id)
+      console.log("tasktimes", tasktimes)
       const projectTime = tasktimes.length ? tasktimes.reduce((a, c) =>  a + parseFloat(c.time), 0) : 0
       return {
         project_id: project.id,
@@ -267,7 +269,7 @@ const styles = StyleSheet.create({
   },
 
   listCell: {
-    height: Size.cell_height,
+    height: Size.row_height,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',

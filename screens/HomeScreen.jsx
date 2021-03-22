@@ -6,54 +6,92 @@ import {
   StyleSheet,
   ScrollView,
   Dimensions,
+  ActivityIndicator,
+  Image,
 } from 'react-native';
-import { TouchableWithoutFeedback } from 'react-native-gesture-handler';
-
-import { Color, Font, Size } from '../util/global_style'
+import { TouchableOpacity, TouchableWithoutFeedback } from 'react-native-gesture-handler';
+import { Color, Font, getColor, Size } from '../util/global_style'
+import PlusMark from '../components/PlusMark'
 
 // db
 import { createTables, db } from '../util/db'
 
 // layout
-const width = Dimensions.get('window').width;
+const { width, height } = Dimensions.get('window');
 
 
-export default function HomeScreen({ navigation }) {
 
-  const [times, setTimes] = useState([]);
+
+export default function HomeScreen({ navigation, route }) {
+
+  // const [times, setTimes] = useState([]);
   const [projects, setProjects] = useState([]);
   const [dateList, setDateList] = useState([]);
   const [cellData, setCellData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const [year, setYear] = useState(2021);
-  const [month, setMonth] = useState(2);
+  const [year, setYear] = useState();
+  const [month, setMonth] = useState();
 
-  // //for sync create
+  const [dateSummary, setDateSummary] = useState();
+  const [projectSummary, setProjectSummary] = useState();
+  const [monthlySummary, setMonthlySummary] = useState();
+  const [projectEstimateSummary, setProjectEstimateSummary] = useState();
+
+  //for sync create
   let dateList_for_create = []
   let projects_for_create = []
   let times_for_create = []
+  let create_year = ''
+  let create_month = ''
+
+  //ref 
+  const headerRef = useRef();
+  const cellRef = useRef();
+  const verticalScrillRef = useRef();
+
 
   useEffect(() => {
-    //db
-    createTables()
-
-    //data
-
-    //main
+    console.log("useEffect1");
+    init()
     setHeader()
+    createTables()
+    createData(true) //初期表示だけ今日の日付にスクロールしたい
 
     const unsubscribe = navigation.addListener('focus', () => {
-      console.log("focus")
-      createData()
+      console.log("focus");
+      createData(false)
     });
     return unsubscribe;
-
   }, [])
 
 
-  const headerRef = useRef();
-  const cellRef = useRef();
+  const init = () => {
+    if (route.params) {
+      create_year = (route.params.year)
+      create_month = (route.params.month)
+
+    } else {
+      var today = new Date();
+      create_year = (today.getFullYear())
+      create_month = (today.getMonth() + 1)
+    }
+    setYear(create_year)
+    setMonth(create_month)
+  }
+
+  const scrollToTody = () => {
+    const date = new Date()
+    const today = date.getDate()
+    const month = date.getMonth() + 1
+    const year = date.getFullYear()
+    if (month == create_month && year == create_year) {
+      const oneDayHeight = (Size.cell) + (Size.cell_border * 2) + (Size.cell_margin * 2)
+      const node = verticalScrillRef.current
+      node.scrollTo({ x: 0, y: oneDayHeight * (today) - height / 2, animated: true })
+    }
+  }
+
 
   const setHeader = () => {
     //navigation v5
@@ -63,11 +101,17 @@ export default function HomeScreen({ navigation }) {
     })
   }
 
+  /**
+    *  navigate
+    */
+  const onPressAdd = () => {
+    navigation.navigate('ProjectEdit')
+  }
+
 
   /**
    *  event
    */
-
   const onPressCellItem = (date, project) => {
     const params = {
       date: date,
@@ -91,37 +135,69 @@ export default function HomeScreen({ navigation }) {
     navigation.navigate('ProjectEdit', params)
   }
 
-  /**
-   *  data
-   */
+
+
+  const onPressMoveMonth = (diff) => {
+    // loading
+    setLoading(true)
+    const date = new Date(year, (month - 1), 5)
+    date.setMonth(date.getMonth() + diff);
+
+    create_year = date.getFullYear()
+    create_month = date.getMonth() + 1
+
+    setYear(create_year)
+    setMonth(create_month)
+    createData()
+
+  }
+
 
   /**
    * 今月の日付一覧を取得する 
    */
   const getThisMonthDateList = () => {
-    const endDate = new Date(year, month, 0).getDate() //monthは0起算なので注意
-    const list = []
+
+    const endDate = new Date(create_year, create_month, 0).getDate() //monthは0起算なので注意
+    dateList_for_create=[]
     for (let d = 1; d <= endDate; d++) {
-      list.push({
-        date: `${year}-${padding(month)}-${padding(d)}`,
-        weekDay: getWeekDayJp(year, month, d)
+      dateList_for_create.push({
+        date: `${create_year}-${padding(create_month)}-${padding(d)}`,
+        weekDay: getWeekDayJp(create_year, create_month, d)
       })
     }
-    dateList_for_create = list
-    // return list
   }
 
   /**
    * 
    */
-  const createData = () => {
-    console.log("createData")
+  const createData = (willScroll = false) => {
+    console.log("createData", willScroll)
+    setLoading(true)
+
     //日付リスト作成
     getThisMonthDateList()
+    let start = new Date(create_year, create_month - 1, 1);
+    start.setDate(1);
+
+
+    let end = new Date(create_year, create_month - 1, 1);
+    end.setDate(1);
+    end.setMonth(end.getMonth() + 1);
+    end.setDate(0);
 
     //DBからデータ取得
-    const sql_projects = 'SELECT * FROM projects;';
-    const sql_times = 'SELECT id, date, project_id, SUM(time) AS time FROM times GROUP BY project_id, date;';
+    const sql_projects = 'SELECT * FROM projects WHERE deleted=0 ;';
+    // const sql_times = 'SELECT id, date, project_id, SUM(time) AS time FROM times WHERE times.deleted=0 AND date >= ? AND date <= ? GROUP BY project_id, date;';
+
+    const sql_times = ' \
+    SELECT times.id as id, times.date as date, project_id, SUM(times.time) AS time, projects.deleted FROM times \
+    LEFT OUTER JOIN projects ON times.project_id = projects.id \
+    WHERE times.deleted=0 AND projects.deleted=0 \
+    AND date >= ? AND date <= ? \
+    GROUP BY project_id, date \
+    \
+    ';
 
     db.transaction(tx => {
       tx.executeSql(
@@ -132,26 +208,40 @@ export default function HomeScreen({ navigation }) {
         },
         (obj, error) => { console.log('execute fail', error) }
       );
+
       tx.executeSql(
         sql_times,
-        null,
+        [strFtime(start), strFtime(end)],
         (obj, resultSet) => {
           times_for_create = resultSet.rows._array
         },
+
         (obj, error) => { console.log('execute fail', error) }
       );
     },
       (e) => { console.log(e) },
-      (s) => { 
-        console.log("test")
-        createCellData(projects_for_create, dateList_for_create, times_for_create) 
+      (s) => {
+        createDateSummrayData(projects_for_create, dateList_for_create, times_for_create)
+        createProjectSummrayList(projects_for_create, times_for_create)
+        createProjectEstimateSummray(projects_for_create)
+        createMonthlySummray(times_for_create)
+        createCellData(projects_for_create, dateList_for_create, times_for_create)
+
+        setTimeout(() => setLoading(false), 100)
+        if (willScroll) setTimeout(() => scrollToTody(), 150)
+
 
       }
-
     )
   }
 
+  const strFtime = (date) => {
+    const year = date.getFullYear()
+    const month = date.getMonth() + 1
+    const day = date.getDate()
+    return `${year}-${padding(month)}-${padding(day)}`
 
+  }
   /**
    * ItemCell描画用のデータを作成
    * {
@@ -162,7 +252,6 @@ export default function HomeScreen({ navigation }) {
    * project毎 loop, date毎 loop
    */
   const createCellData = (projects, dateList, times) => {
-    console.log("createCellData")
     const data = {}
     projects.map((pj) => {
       const items = dateList.map((date) => {
@@ -177,9 +266,49 @@ export default function HomeScreen({ navigation }) {
     setCellData(data)
     setProjects(projects)
     setDateList(dateList)
-    setTimes(times)
+
     setLoading(false)
 
+  }
+
+  /**
+   * 日毎の作業時間合計データを作成
+   *  [date:date, time:time ]
+   */
+  const createDateSummrayData = (projects, dateList, times) => {
+    const list = dateList.map((item) => {
+      const filterd_times = times.filter(time => time.date == item.date)
+      const timeSum = filterd_times.reduce((a, c) => a + c.time, 0)
+      return { 'date': item.date, 'time': timeSum }
+    })
+    setDateSummary(list)
+  }
+  /**
+   * 日毎の作業時間合計データを作成
+   * [project_id:project_id, time:time ]
+   */
+
+  const createProjectSummrayList = (projects, times) => {
+    const list = projects.map((item) => {
+      const filterd_times = times.filter(time => time.project_id == item.id)
+      const timeSum = filterd_times.reduce((a, c) => a + c.time, 0)
+      return { 'project_id': item.id, 'time': timeSum }
+    })
+    setProjectSummary(list)
+  }
+
+  /**
+   * 月次の見積もり合計を取得
+   */
+  const createProjectEstimateSummray = (projects) => {
+    const sum = projects.reduce((a, c) => a + parseInt(c.time || 0), 0)
+    setProjectEstimateSummary(sum)
+  }
+  /**
+   * 月次の実績合計を取得
+   */
+  const createMonthlySummray = (times) => {
+    setMonthlySummary(times.reduce((a, c) => a + parseInt(c.time || 0), 0))
   }
 
   const selectTime = (times, projectId, date) => {
@@ -198,7 +327,10 @@ export default function HomeScreen({ navigation }) {
           navigation.navigate('Project')
         }}
       >
-        <Text>Project</Text>
+        <Image
+          source={require('../assets/list_300.png')}
+          style={styles.addProjectBtn_Image}
+        />
       </TouchableWithoutFeedback>
     )
   }
@@ -206,7 +338,23 @@ export default function HomeScreen({ navigation }) {
   const _renderMenu = () => {
     return (
       <View style={styles.menu}>
+
+        <TouchableOpacity style={styles.menu__left} onPress={() => onPressMoveMonth(-1)}>
+          <Image
+            source={require('../assets/left-arrow.png')}
+            style={styles.menu__leftImage}
+          />
+        </TouchableOpacity>
+
         <Text style={styles.menu__text} >{year}年{month}月</Text>
+
+        <TouchableOpacity style={styles.menu__right} onPress={() => onPressMoveMonth(1)}>
+          <Image
+            source={require('../assets/right-arrow.png')}
+            style={styles.menu__rightImage}
+          />
+        </TouchableOpacity>
+
       </View>
     )
   }
@@ -215,6 +363,8 @@ export default function HomeScreen({ navigation }) {
     return (
       <View style={styles.leftTopBox}>
         {/* <PathButtonAnim/> */}
+        <Text style={styles.LeftTop__subText} >合計</Text>
+        <Text style={styles.leftTopBox__Text} >{monthlySummary}<Text style={styles.LeftTop__subText}> /{projectEstimateSummary}</Text></Text>
       </View>
     )
   }
@@ -234,34 +384,43 @@ export default function HomeScreen({ navigation }) {
           node.scrollTo({ x: e.nativeEvent.contentOffset.x, y: e.nativeEvent.contentOffset.y, animated: false })
         }}
       >
-        {projects.map((pj, index) => (
+        {projects.map((pj, index) => {
+          const proSum = projectSummary.find(item => item.project_id == pj.id)
+          const sum = proSum['time'] || 0
+          return (
+            <View key={pj.id} style={{ flexDirection: 'column' }}>
+              <TouchableWithoutFeedback
+                key={index}
+                style={[styles.cell, styles.projectHeaderCell, { backgroundColor: getColor(pj.color) }]}
+                onPress={() => onPressProjectHeader(pj.id)}
+              >
+                <Text style={styles.projectHeaderCell__text}>{pj.name}</Text>
+              </TouchableWithoutFeedback>
+              <View style={styles.projectSum}>
+                <Text style={styles.sum}>{sum}  <Text style={styles.sum__subText}>{pj.time ? `/ ${pj.time}` : ''}</Text></Text>
 
-          <TouchableWithoutFeedback
-            key={index}
-            style={[styles.cell, styles.projectHeaderCell,]}
-            onPress={() => onPressProjectHeader(pj.id)}
-
-          >
-            <Text style={styles.projectHeaderCell__text}>{pj.name}</Text>
-          </TouchableWithoutFeedback>
-        )
-        )}
+              </View>
+            </View>
+          )
+        })}
       </ScrollView>
     )
   }
 
   const _renderDateHeader = () => {
-
+    // console.log("dateList", dateList)
     return (
       <View style={{ borderRightWidth: 0.5 }}>
         {dateList.map((data, index) => {
           const day = getDay(data.date)
           // holiday
-          const dstyle = (day % 7) == 0 || (day % 7) == 6 ? styles.headerHoliday : {}
-          const dstyle__text = (day % 7) == 0 || (day % 7) == 6 ? styles.holidayTExt : {}
+          const dstyle = isWeekEnd(year, month, day) ? styles.headerHoliday : {}
+          const dstyle__text = isWeekEnd(year, month, day) ? styles.holidayTExt : {}
 
           //today
           const today_dstyle = isToday(year, month, day) ? styles.todayCell : {}
+          const dateSum = dateSummary.find(item => item.date == data.date)
+          const sum = dateSum ? dateSum['time'] : 0
 
           return (
             <TouchableWithoutFeedback
@@ -271,6 +430,8 @@ export default function HomeScreen({ navigation }) {
             >
               <Text style={[styles.dateHeaderCell__text, dstyle__text]}>{parseInt(getDay(data.date))}</Text>
               <Text style={[styles.dateHeaderCell__subText, dstyle__text]}>({data.weekDay})</Text>
+              <Text style={styles.sum}>{sum}</Text>
+
             </TouchableWithoutFeedback>
           )
         })}
@@ -280,7 +441,6 @@ export default function HomeScreen({ navigation }) {
 
 
   const _renderProjectItem = (project, index) => {
-
     const projectData = cellData[project.id] || []
     return (
       <View key={index} style={styles.projectRow}>
@@ -289,8 +449,8 @@ export default function HomeScreen({ navigation }) {
 
           const day = getDay(item.date)
           //isHoliday
-          const dstyle = (day % 7) == 0 || (day % 7) == 6 ? styles.holiday : {}
-          const dstyle__text = (day % 7) == 0 || (day % 7) == 6 ? styles.holidayTExt : {}
+          const dstyle = isWeekEnd(year, month, day) ? styles.holiday : {}
+          const dstyle__text = isWeekEnd(year, month, day) ? styles.holidayTExt : {}
           //today
           const today_dstyle = isToday(year, month, day) ? styles.todayCell : {}
 
@@ -311,49 +471,66 @@ export default function HomeScreen({ navigation }) {
   const _renderLoader = () => {
     return (
       <View style={styles.loader}>
-        {/* <ActivityIndicator size="large" color="#000" /> */}
+        <ActivityIndicator size="large" color="#000" />
       </View>
     )
   }
 
+  const _renderZero = () => {
+    return (
+      <View style={styles.zeroHome}>
+        <Text style={styles.zeroText}>まずは下のボタンからプロジェクトを追加しましょう。</Text>
+        <PlusMark size={60} onPress={onPressAdd} />
+      </View>
+    )
+  }
+
+  const _renderHome = () => {
+    return (
+      <>
+        {_renderMenu()}
+        {loading == true && _renderLoader()}
+        {loading == false &&
+          <>
+            <View>
+              {_leftTopBox()}
+              {_renderProjectHeader()}
+            </View>
+
+            <ScrollView bounces={false} ref={verticalScrillRef}>
+              <View style={styles.row} >
+                {_renderDateHeader()}
+
+                <ScrollView
+                  bounces={false}
+                  horizontal={true}
+                  scrollEventThrottle={1}
+                  onScroll={(e) => {
+                    const node = headerRef.current
+                    node.scrollTo({ x: e.nativeEvent.contentOffset.x, y: e.nativeEvent.contentOffset.y, animated: false })
+                  }}
+                  ref={cellRef}
+                >
+                  {projects.map((project, index) => _renderProjectItem(project, index))}
+                </ScrollView>
+              </View>
+            </ScrollView>
+          </>
+        }
+
+      </>
+    )
+  }
+
+
   /**
    * return
    */
-  if (loading == true) {
-    return (_renderLoader())
-  }
-
   return (
     <SafeAreaView style={styles.container}>
-
-
-      {/* テーブル */}
-      <View>
-        {_renderMenu()}
-        {_leftTopBox()}
-        {_renderProjectHeader()}
-      </View>
-
-
-      <ScrollView bounces={false}>
-        <View style={styles.row}>
-          {_renderDateHeader()}
-
-          <ScrollView
-            bounces={false}
-            horizontal={true}
-            scrollEventThrottle={1}
-            onScroll={(e) => {
-              const node = headerRef.current
-              node.scrollTo({ x: e.nativeEvent.contentOffset.x, y: e.nativeEvent.contentOffset.y, animated: false })
-            }}
-            ref={cellRef}
-          >
-            {projects.map((project, index) => _renderProjectItem(project, index))}
-
-          </ScrollView>
-        </View>
-      </ScrollView>
+      {loading == true && _renderLoader()}
+      {loading == false && projects.length == 0 && _renderZero()}
+      {loading == false && projects.length != 0 && _renderHome()}
     </SafeAreaView>
   );
 
@@ -371,7 +548,7 @@ const styles = StyleSheet.create({
   loader: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
   },
 
   container: {
@@ -381,52 +558,92 @@ const styles = StyleSheet.create({
 
   },
   addProjectBtn: {
-    backgroundColor: "#ccffff",
-    height: 40,
-    width: 40,
     marginRight: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 20
+  },
+
+  addProjectBtn_Image: {
+    width: 30,
+    height: 30
   },
 
   menu: {
     height: 60,
-    backgroundColor: "#dfdfdf",
+    // backgroundColor: Color.backGroundColor,
+    flexDirection: 'row',
     alignItems: "center",
-    justifyContent: 'center'
+    justifyContent: 'center',
+    borderBottomWidth: 0.5,
+    borderColor: Color.borderColor
+
   },
+  menu__left: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 44,
+    width: 44,
+
+  },
+  menu__leftImage: {
+    height: 15,
+    width: 15,
+
+  },
+  menu__right: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 44,
+    width: 44,
+
+  },
+  menu__rightImage: {
+    height: 15,
+    width: 15,
+
+  },
+
   menu__text: {
-    fontSize: 32
+    fontSize: 32,
+    marginHorizontal: 32
   },
   leftTopBox: {
-    height: 76,
+    height: 76 + 21,
     width: 77,
     position: 'absolute',
     left: 0,
-    top: 60,
-    borderRightWidth: 0.5,
-    borderBottomWidth: 0.5,
-    zIndex: 2,
+    top: 0,
+    zIndex: 99,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  leftTopBox__Text: {
+    fontSize: 20,
+    fontWeight: 'bold'
+  },
+  LeftTop__subText: {
+    fontSize: 12,
+    fontWeight: 'normal'
   },
   cell: {
     height: Size.cell,
     width: Size.cell,
-    borderWidth: 0.5,
+    borderWidth: Size.cell_border,
     borderRadius: 5,
     borderColor: 'gray',
     justifyContent: 'center',
     alignItems: 'center',
-    margin: 5,
+    margin: Size.cell_margin,
     backgroundColor: Color.cell
 
   },
   projectHeader: {
     marginLeft: Size.cell + 11,
     borderBottomWidth: 0.5,
+
   },
   projectHeaderCell: {
-    backgroundColor: Color.defaultRed,
+    // backgroundColor: Color.defaultRed,
     borderWidth: 0,
     borderRadius: 5,
     padding: 5,
@@ -435,8 +652,17 @@ const styles = StyleSheet.create({
     color: 'white',
     textAlign: 'center',
     fontWeight: 'bold',
-  },
+    fontWeight: 'bold',
+    fontSize: 16
 
+  },
+  projectSum: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    // height:16,
+    paddingBottom: 3,
+
+  },
 
   dateHeaderCell: {
     borderWidth: 0,
@@ -460,7 +686,7 @@ const styles = StyleSheet.create({
     borderWidth: 0
   },
   holidayTExt: {
-    color: 'red'
+    color: Color.holidayText,
   },
 
   headerHoliday: {
@@ -471,7 +697,22 @@ const styles = StyleSheet.create({
     borderWidth: 5,
     borderColor: Color.defaultYellow
   },
-
+  sum: {
+    fontWeight: 'bold',
+  },
+  sum__subText: {
+    fontWeight: '200',
+  },
+  zeroHome: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
+  },
+  zeroText: {
+    width: '80%',
+    fontWeight: 'bold',
+    marginBottom: 40
+  }
 
 });
 
@@ -482,9 +723,11 @@ const styles = StyleSheet.create({
  */
 
 const getWeekDayJp = (year, month, day) => {
+
   const dayOfWeekStr = ["日", "月", "火", "水", "木", "金", "土"]
   const date = new Date(year, month - 1, day)
   const weekDay = date.getDay()
+
   return dayOfWeekStr[weekDay]
 }
 
@@ -503,6 +746,13 @@ const isToday = (year, month, day) => {
   return today.toDateString() == compare.toDateString()
 }
 
-const isHoliday = () => {
+const isWeekEnd = (year, month, day) => {
+  const date = new Date(year, month - 1, day)
+  const weekDay = date.getDay()
+  return (weekDay == 6 || weekDay == 0) ? true : false
 
 }
+
+const colors = [
+
+]

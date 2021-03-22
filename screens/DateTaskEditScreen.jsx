@@ -6,7 +6,7 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
-import { TouchableHighlight, TouchableWithoutFeedback } from 'react-native-gesture-handler';
+import { TextInput, TouchableHighlight, TouchableWithoutFeedback } from 'react-native-gesture-handler';
 import PlusMark from '../components/PlusMark'
 import { Color, Font, Size } from '../util/global_style'
 
@@ -29,6 +29,7 @@ export default function DateTaskEditScreen({ navigation, route }) {
   const [taskTimeId, setTaskTimeId] = useState('')
   const [taskTime, setTaskTime] = useState('')
 
+  const [taskMemo, setTaskMemo] = useState('')
 
   // task modal
   const [taskPickerData, setTaskPickerData] = useState([]);
@@ -62,6 +63,7 @@ export default function DateTaskEditScreen({ navigation, route }) {
       setTaskName(route.params.task_name || '')
       setTaskTime(route.params.task_time || '')
       setTaskTimeId(route.params.task_time_id || '')
+      setTaskMemo(route.params.task_memo || '')
       select()
     }
   }
@@ -71,7 +73,16 @@ export default function DateTaskEditScreen({ navigation, route }) {
    * event
    */
   const onPressSave = () => {
-    taskTimeId ? udpateTaskTime() : insertTaskTime()
+    const errors = []
+    if (!taskName) errors.push('タスクを選択してください。')
+    if (!taskTime) errors.push('時間を入力してください。')
+
+    if (errors.length > 0) {
+      alert(errors.join("\n"))
+    } else {
+      taskTimeId ? udpateTaskTime() : insertTaskTime()
+    }
+
   }
 
   const onPressDelete = () => {
@@ -97,7 +108,7 @@ export default function DateTaskEditScreen({ navigation, route }) {
   * db
   */
   const select = () => {
-    const sql_tasks = "SELECT * FROM tasks WHERE project_id = ?;"
+    const sql_tasks = "SELECT * FROM tasks WHERE project_id = ? AND deleted=0;"
 
     db.transaction(tx => {
       tx.executeSql(
@@ -116,17 +127,19 @@ export default function DateTaskEditScreen({ navigation, route }) {
     })
     setTaskPickerData(taskPickerData)
     setTaskMaster(tasks)
+
   }
 
 
   const insertTaskTime = () => {
-    const sql = 'INSERT INTO times (date, time, task_id, project_id) VALUES (?, ?, ?, ?)';
+
+    const sql = 'INSERT INTO times (date, time, memo, task_id, project_id) VALUES (?, ?, ?, ?, ?)';
     const taskId = fetchTaskId()
 
     db.transaction(tx => {
       tx.executeSql(
         sql,
-        [date, taskTime, taskId, projectId],
+        [date, taskTime, taskMemo, taskId, projectId],
         (res, res2) => { console.log('execute success', res2); navigation.goBack() },
         (object, error) => { console.log('execute fail', error) }
       );
@@ -136,15 +149,17 @@ export default function DateTaskEditScreen({ navigation, route }) {
 
   const udpateTaskTime = () => {
     console.log("udpateTaskTime")
-    const sql = 'UPDATE times SET time=?, task_id=?  WHERE id = ?';
+    const sql = 'UPDATE times SET time=?, task_id=?, memo=? WHERE id = ?';
     const taskId = fetchTaskId()
+
+    console.log("udpateTaskTime", taskMemo)
 
     db.transaction(tx => {
       tx.executeSql(
         sql,
-        [taskTime, taskId, taskTimeId],
+        [taskTime, taskId, taskMemo, taskTimeId],
         (res, res2) => { console.log('execute success', res2); navigation.goBack() },
-        (object, error) => { console.log('execute fail', error) }
+        (object, error) => { console.log('execute fail 2', error) }
       );
     })
   }
@@ -156,7 +171,9 @@ export default function DateTaskEditScreen({ navigation, route }) {
   }
 
   const destroy = () => {
-    const sql = 'DELETE FROM times WHERE id=?';
+    // const sql = 'DELETE FROM times WHERE id=?';
+    const sql = 'UPDATE times SET deleted=1  WHERE id = ?';
+
     db.transaction(tx => {
       tx.executeSql(
         sql,
@@ -176,9 +193,11 @@ export default function DateTaskEditScreen({ navigation, route }) {
   */
 
   const onPressTaskRow = () => {
+    if (!taskName) { setTaskName(taskMaster[0].name) }
     setTaskModalVisible(!taskModalVisible)
   }
   const onPressTimeRow = () => {
+    if (!taskTime) { setTaskTime(timePickerData[0].value) }
     setTimeModalVisible(!timeModalVisible)
   }
 
@@ -243,21 +262,39 @@ export default function DateTaskEditScreen({ navigation, route }) {
         >
           <View style={styles.labelWrapper}><Text style={styles.label__text}>時間</Text></View>
           <View style={styles.valueWrapper}>
-
             {taskTime == '' && <Text style={[styles.textInput, { color: '#888' }]}>作業時間を選択してください</Text>}
             {taskTime !== '' && <Text style={styles.textInput}>{taskTime}</Text>}
-
           </View>
         </TouchableWithoutFeedback>
+        <ModalPicker
+          data={timePickerData}
+          modalVisible={timeModalVisible}
+          onClose={() => { setTimeModalVisible(false) }}
+          selectedValue={taskTime}
+          onValueChange={(v) => { setTaskTime(v) }}
+        >
+        </ModalPicker>
+
+        {/* memo */}
+        <View
+          pointerEvents={'auto'}
+          style={styles.memo__row}
+        >
+          <View style={styles.labelWrapper}><Text style={styles.label__text}>メモ</Text></View>
+          <TextInput
+            multiline={true}
+            style={styles.memo__input}
+            onChangeText={(text) => {
+              console.log(text)
+              setTaskMemo(text)
+            }}
+            defaultValue={taskMemo}
+          />
+
+        </View>
+
+
       </View>
-      <ModalPicker
-        data={timePickerData}
-        modalVisible={timeModalVisible}
-        onClose={() => { setTimeModalVisible(false) }}
-        selectedValue={taskTime}
-        onValueChange={(v) => { setTaskTime(v) }}
-      >
-      </ModalPicker>
 
 
       {/* Button */}
@@ -302,7 +339,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     padding: 10,
-    height: Size.cell_height,
+    height: Size.row_height,
     borderBottomWidth: 0.5,
     alignItems: 'center',
     backgroundColor: "#fff"
@@ -342,7 +379,6 @@ const styles = StyleSheet.create({
 
   field__text: {
     marginBottom: 20,
-
   },
 
   textInput: {
@@ -395,10 +431,23 @@ const styles = StyleSheet.create({
   },
   listCell: {
     flexDirection: 'row',
-    height: Size.cell_height,
+    height: Size.row_height,
     alignItems: 'center',
     marginLeft: 10,
   },
+  memo__row: {
+    padding: 10,
+    borderBottomWidth: 0.5,
+    backgroundColor: "#fff"
+
+  },
+  memo__input: {
+    borderWidth: 0.5,
+    margin: 10,
+    height: 80,
+    padding: 10,
+    borderRadius: 5,
+  }
 });
 
 const timePickerData = [
@@ -407,5 +456,47 @@ const timePickerData = [
   { label: '1.5', value: '1.5' },
   { label: '2.0', value: '2.0' },
   { label: '2.5', value: '2.5' },
+  { label: '3.0', value: '3.0' },
+  { label: '3.5', value: '3.5' },
+  { label: '4.0', value: '4.0' },
+  { label: '4.5', value: '4.5' },
+  { label: '5.0', value: '5.0' },
+  { label: '5.5', value: '5.5' },
+  { label: '6.0', value: '6.0' },
+  { label: '6.5', value: '6.5' },
+  { label: '7.0', value: '7.0' },
+  { label: '7.5', value: '7.5' },
+  { label: '8.0', value: '8.0' },
+  { label: '8.5', value: '8.5' },
+  { label: '9.0', value: '9.0' },
+  { label: '9.5', value: '9.5' },
+  { label: '10.0', value: '10.0' },
+  { label: '10.5', value: '10.5' },
+  { label: '11.0', value: '11.0' },
+  { label: '11.5', value: '11.5' },
+  { label: '12.0', value: '12.0' },
+  { label: '12.5', value: '12.5' },
+  { label: '13.0', value: '13.0' },
+  { label: '13.5', value: '13.5' },
+  { label: '14.0', value: '14.0' },
+  { label: '14.5', value: '14.5' },
+  { label: '15.0', value: '15.0' },
+  { label: '15.5', value: '15.5' },
+  { label: '16.0', value: '16.0' },
+  { label: '16.5', value: '16.5' },
+  { label: '17.0', value: '17.0' },
+  { label: '17.5', value: '17.5' },
+  { label: '18.0', value: '18.0' },
+  { label: '18.5', value: '18.5' },
+  { label: '19.0', value: '19.0' },
+  { label: '19.5', value: '19.5' },
+  { label: '20.0', value: '20.0' },
+  { label: '21.5', value: '21.5' },
+  { label: '22.0', value: '22.0' },
+  { label: '22.5', value: '22.5' },
+  { label: '23.0', value: '23.0' },
+  { label: '23.5', value: '23.5' },
+  { label: '24.0', value: '24.0' },
+
 ]
 
