@@ -153,7 +153,6 @@ export class ModalPicker extends React.Component<Props, State> {
     const { modalMarginTop } = this.state
     let isEmpty = currentValue.length == 0
 
-    console.log("picker start", this.props.modalVisible)
     if (this.props.modalVisible) {
       this._showPicker()
     }

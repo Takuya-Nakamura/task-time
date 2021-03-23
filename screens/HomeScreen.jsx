@@ -53,7 +53,6 @@ export default function HomeScreen({ navigation, route }) {
   // init
   // ----------------------------------------
   useEffect(() => {
-    console.log("useEffect1");
     init()
     setHeader()
     createTables()
@@ -174,7 +173,6 @@ export default function HomeScreen({ navigation, route }) {
   // ----------------------------------------
 
   const createData = (willScroll = false) => {
-    console.log("createData", willScroll)
     setLoading(true)
 
     //日付リスト作成
@@ -401,7 +399,6 @@ export default function HomeScreen({ navigation, route }) {
   }
 
   const _renderDateHeader = () => {
-    // console.log("dateList", dateList)
     return (
       <View style={{ borderRightWidth: 0.5 }}>
         {dateList.map((data, index) => {

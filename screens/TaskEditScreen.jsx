@@ -29,7 +29,6 @@ export default function TaskEditScreen({ navigation, route }) {
   }, [])
 
   const init = () => {
-    console.log("route.params", route.params)
     if (route.params) {
       setProjectId(route.params.projectId)
       setProjectName(route.params.projectName)
@@ -86,7 +85,6 @@ export default function TaskEditScreen({ navigation, route }) {
   }
 
   const updateTask = () => {
-    console.log("updateTask")
     const sql = 'UPDATE tasks SET name = ? WHERE id = ?';
 
     db.transaction(tx => {
