@@ -17,39 +17,36 @@ import { db } from '../util/db'
 export default function DateTaskListScreen({ navigation, route }) {
 
   const [date, setDate] = useState('');
-  // const [project, setProject] = useState('');
-
-  //data
-  // const [tasks, setTasks] = useState(tasks);
   const [taskTime, setTaskTime] = useState([]);
 
-  /**
-   * Use
-   */
+  // ----------------------------------------
+  // init
+  // ----------------------------------------
   useEffect(() => {
      const unsubscribe = navigation.addListener('focus', () => {
       init()
+      setHeader()
     });
     return unsubscribe;
   }, [])
-
-
-  /**
- *  init
- */
   const init = () => {
     if (route.params) {
       setDate(route.params.date)
       // setProject(route.params.project || null)
       select(route.params.date, route.params.project)
     }
+  }
+
+  const  setHeader = ()=>{
+    navigation.setOptions({
+      headerTitle: '作業時間リスト',
+    })
 
   }
 
-
-  /****
-   * navigate
-   */
+  // ----------------------------------------
+  // navigate
+  // ----------------------------------------
 
   const navigateToDateTaskEdit = (project, task = {}) => {
     console.log("navigateToDateTaskEdit", task)
@@ -71,12 +68,12 @@ export default function DateTaskListScreen({ navigation, route }) {
     navigation.navigate('DateTaskEdit', params)
 
   }
-  /**
-  * db
-  */
+
+  // ----------------------------------------
+  // db
+  // ----------------------------------------
   let times_for_create = []
   let projects_for_create = []
-
 
   const select = (date, project) => {
     let sql_times = "\
@@ -108,7 +105,7 @@ export default function DateTaskListScreen({ navigation, route }) {
         (transaction, resultSet) => {
           times_for_create = resultSet.rows._array || []
         },
-        (transaction, error) => { console.log('execute fail 11', error) }
+        (transaction, error) => { console.log('execute fail 1', error) }
       );
       tx.executeSql(
         sql_projects,
@@ -139,15 +136,9 @@ export default function DateTaskListScreen({ navigation, route }) {
     ...
   },
    */
-  // Data整理して１回つくり直し
   const createData = (times, projects) => {
-    // const projects = []
-
-    //project listを作成
-
     const taskTimeData = projects.map((project) => {
       const tasktimes = times.filter((time) => time.project_id == project.id)
-      console.log("tasktimes", tasktimes)
       const projectTime = tasktimes.length ? tasktimes.reduce((a, c) =>  a + parseFloat(c.time), 0) : 0
       return {
         project_id: project.id,
@@ -160,10 +151,9 @@ export default function DateTaskListScreen({ navigation, route }) {
 
   }
 
-  /**
-  * return
-  */
-
+  // ----------------------------------------
+  // render
+  // ----------------------------------------
   const _renderProjectTasks = () => {
 
     return (
@@ -181,6 +171,7 @@ export default function DateTaskListScreen({ navigation, route }) {
 
             <View style={styles.addButton__wrapper}>
               <PlusMark size={30} onPress={() => navigateToDateTaskEdit(item)} />
+              <Text style={styles.addButton__Text}>記録する</Text>
             </View>
 
           </View>
@@ -199,17 +190,9 @@ export default function DateTaskListScreen({ navigation, route }) {
     )
   }
 
-  const _renderProjectAddButton = (project) => {
-    return (
-      <TouchableWithoutFeedback style={styles.addButton} onPress={(e) => navigateToDateTaskEdit(project)}>
-        <Text style={styles.addButton__text}>+</Text>
-      </TouchableWithoutFeedback>
-    )
-  }
-
-  /**
-   * return
-   */
+  // ----------------------------------------
+  // return
+  // ----------------------------------------
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
@@ -220,8 +203,7 @@ export default function DateTaskListScreen({ navigation, route }) {
       </ScrollView>
     </SafeAreaView>
   );
-
-} //function
+}
 
 
 /**
@@ -230,6 +212,7 @@ export default function DateTaskListScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#fff",
   },
   header: {
     margin: 20,
@@ -241,8 +224,8 @@ const styles = StyleSheet.create({
   },
   projectWrapper: {
     marginBottom: 30,
-    backgroundColor: "#fff",
-
+    
+    paddingBottom:5
   },
   projectName: {
     margin: 20,
@@ -286,7 +269,13 @@ const styles = StyleSheet.create({
   listCell__arrow: {
     width: 30
   },
-
+  addButton__wrapper:{
+    justifyContent:'center',
+    alignItems:'center'
+  },
+  addButton__Text:{
+    marginTop:5
+  }
 
 });
 

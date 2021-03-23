@@ -101,15 +101,6 @@ export class ModalPicker extends React.Component<Props, State> {
     })
   }
 
-  // _onComplete = () => {
-  //   const { activeValue, selectedIndex } = this.state
-  //   // UI競合を避けるため, animation完了後にonChangeを実行
-  //   setTimeout(() => {
-  //     // this.props.onValueChange(activeValue, selectedIndex)
-  //   }, 400)
-  //   this._closePicker()
-  // }
-
 
 
   // ----------------------------------------
@@ -142,7 +133,7 @@ export class ModalPicker extends React.Component<Props, State> {
           selectedValue={selectedValue}
           mode="dropdown"
         >
-          {data.map((item) => <Picker.Item label={item.label} value={item.value} />)}
+          {data.map((item, index) => <Picker.Item key={index} label={item.label} value={item.value} />)}
         </Picker>
 
         {/* <WheelPicker

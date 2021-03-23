@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   View,
@@ -6,7 +6,7 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
-import { TextInput, TouchableHighlight, TouchableWithoutFeedback } from 'react-native-gesture-handler';
+import { TextInput, TouchableHighlight  } from 'react-native-gesture-handler';
 import { Color, Font, Size } from '../util/global_style'
 
 // db
@@ -20,17 +20,14 @@ export default function TaskEditScreen({ navigation, route }) {
   const [taskName, setTaskName] = useState('');
 
 
-  /**
-   * Use
-   */
+  // ----------------------------------------
+  // init
+  // ----------------------------------------
   useEffect(() => {
     init();
+    setHeader()
   }, [])
 
-
-  /**
- *  init
- */
   const init = () => {
     console.log("route.params", route.params)
     if (route.params) {
@@ -39,14 +36,19 @@ export default function TaskEditScreen({ navigation, route }) {
       setTaskId(route.params.taskId)
       setTaskName(route.params.taskName)
     }
-    console.log("route.params", route.params)
+  }
+
+  const setHeader = () => {
+    //navigation v5
+    navigation.setOptions({
+      headerTitle: 'タスク 編集',
+    })
   }
 
 
-  /****
-   * event
-   */
-
+  // ----------------------------------------
+  // event
+  // ----------------------------------------
   const onPressSave = () => {
     if (!taskName) {
       alert('タスク名を入力してく')
@@ -67,11 +69,9 @@ export default function TaskEditScreen({ navigation, route }) {
   }
 
 
-  /**
-  * DB
-  */
-
-
+  // ----------------------------------------
+  // db
+  // ----------------------------------------
   const insertTask = () => {
     const sql = 'INSERT INTO tasks (name, project_id) VALUES (?, ?)';
 
@@ -114,67 +114,68 @@ export default function TaskEditScreen({ navigation, route }) {
   }
 
 
-  /**
-   * return
-   */
+  // ----------------------------------------
+  // return
+  // ----------------------------------------
   return (
     <SafeAreaView style={styles.container}>
-
-      <View style={styles.field} >
+      <View style={styles.header}>
         <Text style={styles.projectName}>{projectName}</Text>
       </View>
 
-      <View style={styles.field} >
-        <View style={styles.time_row}>
-          <TextInput
-            onChangeText={(text) => setTaskName(text)}
-            value={taskName}
-            placeholder={'タスク名'}
-            autoFocus={true}
-            style={[styles.textInput]}
-          >
-          </TextInput>
+      <View style={{ backgroundColor: 'white' }}>
+        <View style={styles.field} >
+          <View style={styles.time_row}>
+            <TextInput
+              onChangeText={(text) => setTaskName(text)}
+              value={taskName}
+              placeholder={'タスク名'}
+              autoFocus={true}
+              style={[styles.textInput]}
+            >
+            </TextInput>
+          </View>
         </View>
-      </View>
 
 
-      <View style={styles.field} >
-        <TouchableHighlight
-          style={styles.saveButton}
-          onPress={onPressSave}
-        >
-          <Text style={styles.button__text}>保存</Text>
-        </TouchableHighlight>
-      </View>
-
-      {taskId != null &&
         <View style={styles.field} >
           <TouchableHighlight
-            style={styles.deleteButton}
-            onPress={onPressDelete}
+            style={styles.saveButton}
+            onPress={onPressSave}
           >
-            <Text style={styles.button__text}>削除</Text>
+            <Text style={styles.button__text}>保存</Text>
           </TouchableHighlight>
         </View>
-      }
 
+        {taskId != null &&
+          <View style={styles.field} >
+            <TouchableHighlight
+              style={styles.deleteButton}
+              onPress={onPressDelete}
+            >
+              <Text style={styles.button__text}>削除</Text>
+            </TouchableHighlight>
+          </View>
+        }
+      </View>
     </SafeAreaView>
   );
 
 } //function
 
 
-/**
- * conf
- */
+// ----------------------------------------
+// style
+// ----------------------------------------
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff"
+    backgroundColor: 'white'
+
   },
   header: {
     margin: 20,
-    marginBottom: 0,
+
   },
   field: {
     margin: 20,
@@ -195,15 +196,11 @@ const styles = StyleSheet.create({
     borderColor: Color.borderColor,
     padding: 5,
     borderRadius: 5,
-
-
   },
   textInput_active: {
     borderColor: '#ed7d3b',
     borderBottomWidth: 1,
   },
-
-
   saveButton: {
     backgroundColor: Color.saveButton,
     width: Size.button_with,

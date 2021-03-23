@@ -6,20 +6,14 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
-
 } from 'react-native';
 import { TextInput, TouchableHighlight, TouchableWithoutFeedback } from 'react-native-gesture-handler';
 import PlusMark from '../components/PlusMark'
 import CheckMark from '../components/CheckMark'
 import { Color, Font, Size, projectColor, getColor } from '../util/global_style'
 
-
 // db
-import * as SQLite from 'expo-sqlite';
-
-//realm
-// import Realm from 'realm'
-// import { realmOptions } from '../config/realm'
+import { db } from '../util/db'
 
 export default function ProjectEditScreen({ navigation, route }) {
 
@@ -33,14 +27,14 @@ export default function ProjectEditScreen({ navigation, route }) {
   const [projectIsActive, setProjectIsActive] = useState(false);
   const [timeIsActive, setTimeIsActive] = useState(false);
 
-  /**
-   * Use
-   */
+  // ----------------------------------------
+  // init
+  // ----------------------------------------
   useEffect(() => {
-
     const unsubscribe = navigation.addListener('focus', () => {
       console.log("will focus")
       init();
+      setHeader();
       // createData()
     });
     return unsubscribe
@@ -49,9 +43,6 @@ export default function ProjectEditScreen({ navigation, route }) {
   const nameRef = useRef();
   const timeRef = useRef();
 
-  /**
-   *  init
-   */
   const init = () => {
     if (route.params) {
       setId(route.params.id)
@@ -59,12 +50,16 @@ export default function ProjectEditScreen({ navigation, route }) {
     }
   }
 
-  /****
-   * DB
-   */
+  const setHeader = () => {
+    navigation.setOptions({
+      headerTitle: 'プロジェクト編集',
+    })
+  }
 
+  // ----------------------------------------
+  // db
+  // ----------------------------------------
   const select = (id) => {
-    const db = SQLite.openDatabase('db')
     const sql = 'SELECT * FROM Projects WHERE id = ?';
     const sql2 = 'SELECT * FROM tasks WHERE project_id = ? and deleted=0';
     db.transaction(tx => {
@@ -77,7 +72,6 @@ export default function ProjectEditScreen({ navigation, route }) {
           setName(data.name)
           setTime(data.time)
           setColorId(data.color)
-
         },
         (object, error) => { console.log('execute fail', error) }
       );
@@ -94,7 +88,6 @@ export default function ProjectEditScreen({ navigation, route }) {
 
 
   const insert = () => {
-    const db = SQLite.openDatabase('db')
     const sql = 'INSERT INTO projects (name, time, color ) VALUES (?, ?, ?)';
 
     db.transaction(tx => {
@@ -110,9 +103,7 @@ export default function ProjectEditScreen({ navigation, route }) {
     )
   }
 
-
   const update = () => {
-    const db = SQLite.openDatabase('db')
     const sql = 'UPDATE projects SET name=?, time=?, color=? WHERE id=?';
 
     db.transaction(tx => {
@@ -125,20 +116,16 @@ export default function ProjectEditScreen({ navigation, route }) {
         (object, error) => { console.log('execute fail', error) }
       );
     })
-
   }
 
   const destroy = () => {
-    const db = SQLite.openDatabase('db')
     const sql = 'UPDATE projects SET deleted=1 WHERE id=?';
-
     db.transaction(tx => {
       tx.executeSql(
         sql,
         [id],
         (transaction, resultSet) => {
           navigation.goBack()
-
         },
         (object, error) => { console.log('execute fail', error) }
       );
@@ -146,24 +133,23 @@ export default function ProjectEditScreen({ navigation, route }) {
 
   }
 
-  /****
-   * event
-   */
+  // ----------------------------------------
+  // event
+  // ----------------------------------------
   const onPressLabel = (ref) => {
     const node = ref.current
     node.focus()
   }
 
   const onPressSave = () => {
-
     const errors = []
     if (!name) {
       alert("プロジェクト名を入力してください。")
-    }else{
+    } else {
       id ? update() : insert()
     }
   }
-  
+
   const onPressDelete = () => {
     Alert.alert(
       "削除しますか？",
@@ -198,9 +184,9 @@ export default function ProjectEditScreen({ navigation, route }) {
     setColorId(item.id)
   }
 
-  /**
-  * render
-  */
+  // ----------------------------------------
+  // render
+  // ----------------------------------------
   const _renderTasks = () => {
     return (
       <>
@@ -281,10 +267,9 @@ export default function ProjectEditScreen({ navigation, route }) {
     )
   }
 
-  /**
-  * return
-  */
-
+  // ----------------------------------------
+  // return
+  // ----------------------------------------
   const projectdStyle = projectIsActive ? styles.textInput_active : {}
   const timedStyle = timeIsActive ? styles.textInput_active : {}
   return (
@@ -360,12 +345,13 @@ export default function ProjectEditScreen({ navigation, route }) {
 } //function
 
 
-/**
- * conf
- */
+// ----------------------------------------
+// style
+// ----------------------------------------
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: 'white'
   },
 
   row: {
@@ -423,8 +409,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   color_cell: {
-    width: 50,
-    height: 50,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center'
 

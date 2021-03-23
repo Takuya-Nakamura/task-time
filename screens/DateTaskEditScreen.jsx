@@ -41,19 +41,21 @@ export default function DateTaskEditScreen({ navigation, route }) {
 
 
 
-  /**
-   * Use
-   */
+  // ----------------------------------------
+  // Use
+  // ----------------------------------------
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       init()
+      setHeader()
     });
     return unsubscribe
   }, [])
 
-  /**
- *  init
- */
+
+  // ----------------------------------------
+  // init
+  // ----------------------------------------
   const init = () => {
     console.log(route.params)
     if (route.params) {
@@ -67,11 +69,17 @@ export default function DateTaskEditScreen({ navigation, route }) {
       select()
     }
   }
+  const setHeader = () => {
+    //navigation v5
+    navigation.setOptions({
+      headerTitle: '作業時間 編集',
+    })
+  }
 
 
-  /****
-   * event
-   */
+  // ----------------------------------------
+  // event
+  // ----------------------------------------
   const onPressSave = () => {
     const errors = []
     if (!taskName) errors.push('タスクを選択してください。')
@@ -104,9 +112,23 @@ export default function DateTaskEditScreen({ navigation, route }) {
     navigation.navigate('TaskEdit', params)
   }
 
-  /**
-  * db
-  */
+  const onPressTaskRow = () => {
+    if (taskPickerData.length == 0) {
+      onPressAddTask()
+    } else {
+      if (!taskName) { setTaskName(taskMaster[0].name) }
+      setTaskModalVisible(!taskModalVisible)
+    }
+  }
+
+  const onPressTimeRow = () => {
+    if (!taskTime) { setTaskTime(timePickerData[0].value) }
+    setTimeModalVisible(!timeModalVisible)
+  }
+
+  // ----------------------------------------
+  // db
+  // ----------------------------------------
   const select = () => {
     const sql_tasks = "SELECT * FROM tasks WHERE project_id = ? AND deleted=0;"
 
@@ -126,13 +148,12 @@ export default function DateTaskEditScreen({ navigation, route }) {
       return { value: task.name, label: task.name }
     })
     setTaskPickerData(taskPickerData)
+    if (taskPickerData.length > 0) setTaskName(taskPickerData[0]['value'])
     setTaskMaster(tasks)
 
   }
 
-
   const insertTaskTime = () => {
-
     const sql = 'INSERT INTO times (date, time, memo, task_id, project_id) VALUES (?, ?, ?, ?, ?)';
     const taskId = fetchTaskId()
 
@@ -143,16 +164,12 @@ export default function DateTaskEditScreen({ navigation, route }) {
         (res, res2) => { console.log('execute success', res2); navigation.goBack() },
         (object, error) => { console.log('execute fail', error) }
       );
-    },
-    )
+    })
   }
 
   const udpateTaskTime = () => {
-    console.log("udpateTaskTime")
     const sql = 'UPDATE times SET time=?, task_id=?, memo=? WHERE id = ?';
     const taskId = fetchTaskId()
-
-    console.log("udpateTaskTime", taskMemo)
 
     db.transaction(tx => {
       tx.executeSql(
@@ -164,14 +181,12 @@ export default function DateTaskEditScreen({ navigation, route }) {
     })
   }
 
-
   const fetchTaskId = () => {
     const task = taskMaster.find(task => taskName == task.name)
     return task.id
   }
 
   const destroy = () => {
-    // const sql = 'DELETE FROM times WHERE id=?';
     const sql = 'UPDATE times SET deleted=1  WHERE id = ?';
 
     db.transaction(tx => {
@@ -184,64 +199,65 @@ export default function DateTaskEditScreen({ navigation, route }) {
         (object, error) => { console.log('execute fail', error) }
       );
     })
-
   }
 
 
-  /**
-  * return
-  */
-
-  const onPressTaskRow = () => {
-    if (!taskName) { setTaskName(taskMaster[0].name) }
-    setTaskModalVisible(!taskModalVisible)
-  }
-  const onPressTimeRow = () => {
-    if (!taskTime) { setTaskTime(timePickerData[0].value) }
-    setTimeModalVisible(!timeModalVisible)
-  }
-
-
-  /**
-   * return
-   */
+  // ----------------------------------------
+  // return
+  // ----------------------------------------
   return (
     <SafeAreaView style={styles.container}>
+
+        <View style={styles.header}>
+          <Text style={styles.header__Text}>{date}  </Text>
+          <Text style={styles.header__Text}>{projectName}</Text>
+        </View>
+
       <View style={styles.listWrapper}>
 
-        <TouchableWithoutFeedback style={styles.row}>
+        {/* <TouchableWithoutFeedback style={[styles.row, styles.disable]}>
           <View style={styles.labelWrapper}><Text style={styles.label__text}>プロジェクト</Text></View>
           <View style={styles.valueWrapper}><Text>{projectName}</Text></View>
         </TouchableWithoutFeedback>
 
-        <TouchableWithoutFeedback style={styles.row}>
+        <TouchableWithoutFeedback style={[styles.row, styles.disable]}>
           <View style={styles.labelWrapper}><Text style={styles.label__text}>日付</Text></View>
           <View style={styles.valueWrapper}><Text>{date}</Text></View>
-        </TouchableWithoutFeedback>
+        </TouchableWithoutFeedback> */}
 
 
         {/* Task */}
         <TouchableWithoutFeedback
           onPress={onPressTaskRow}
-          style={[styles.row, styles.taskRow]}
+          style={[styles.row]}
           pointerEvents={'auto'}
         >
           <View style={styles.labelWrapper}><Text style={styles.label__text}>タスク</Text></View>
-          <View style={styles.valueWrapper}>
-            {taskName == '' && <Text style={[styles.textInput, { color: '#888' }]}>タスクを選択してください</Text>}
-            {taskName !== '' && <Text style={styles.textInput}>{taskName}</Text>}
-          </View>
+
+          {taskPickerData.length != 0 &&
+            <View style={styles.valueWrapper}>
+              {taskName == '' && <Text style={[styles.textInput, { color: '#888' }]}>タスクを選択してください</Text>}
+              {taskName !== '' && <Text style={styles.textInput}>{taskName}</Text>}
+            </View>
+          }
+
+          {taskPickerData.length == 0 &&
+            <View style={styles.valueWrapper}>
+              {taskName == '' && <Text style={[styles.textInput, { color: '#888' }]}>タスクを追加してください</Text>}
+            </View>
+          }
 
         </TouchableWithoutFeedback>
 
-        <View style={{ width: '100%', alignItems: 'flex-end', borderBottomWidth: 0.5, backgroundColor: '#fff' }}>
-          <PlusMark
-            onPress={onPressAddTask}
-            style={{ backgroundColor: '#fff', height: 50, alignItems: 'flex-end', paddingRight: 30 }}
-            size={25}
-          />
 
-        </View>
+        <TouchableWithoutFeedback style={styles.row} onPress={onPressAddTask}>
+          <View style={styles.labelWrapper}><Text style={styles.label__text}>タスクを追加する</Text></View>
+          <View style={styles.valueWrapper}>
+          <PlusMark size={25}/>
+
+          </View>
+        </TouchableWithoutFeedback>
+
         <ModalPicker
           data={taskPickerData}
           modalVisible={taskModalVisible}
@@ -290,12 +306,8 @@ export default function DateTaskEditScreen({ navigation, route }) {
             }}
             defaultValue={taskMemo}
           />
-
         </View>
-
-
       </View>
-
 
       {/* Button */}
       <View style={styles.field} >
@@ -331,6 +343,7 @@ export default function DateTaskEditScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#fff"
   },
   listWrapper: {
     borderTopWidth: 0.25,
@@ -342,7 +355,9 @@ const styles = StyleSheet.create({
     height: Size.row_height,
     borderBottomWidth: 0.5,
     alignItems: 'center',
-    backgroundColor: "#fff"
+  },
+  disable: {
+    backgroundColor: '#dfdfdf'
   },
   taskRow: {
     borderBottomWidth: 0,
@@ -368,18 +383,17 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: Font.labelSize,
   },
-  dateText: {
+  header__Text: {
     fontWeight: "bold",
-
+    fontSize: Font.labelSize,
+    marginBottom: 10,
   },
+
   field: {
     margin: 20,
     marginBottom: 40,
   },
 
-  field__text: {
-    marginBottom: 20,
-  },
 
   textInput: {
     padding: 5,

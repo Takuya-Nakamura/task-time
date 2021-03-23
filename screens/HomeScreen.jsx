@@ -17,14 +17,13 @@ import PlusMark from '../components/PlusMark'
 import { createTables, db } from '../util/db'
 
 // layout
-const { width, height } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
 
 
 
 
 export default function HomeScreen({ navigation, route }) {
 
-  // const [times, setTimes] = useState([]);
   const [projects, setProjects] = useState([]);
   const [dateList, setDateList] = useState([]);
   const [cellData, setCellData] = useState([]);
@@ -38,7 +37,7 @@ export default function HomeScreen({ navigation, route }) {
   const [monthlySummary, setMonthlySummary] = useState();
   const [projectEstimateSummary, setProjectEstimateSummary] = useState();
 
-  //for sync create
+  //同期的にデータを作成するために必要
   let dateList_for_create = []
   let projects_for_create = []
   let times_for_create = []
@@ -50,7 +49,9 @@ export default function HomeScreen({ navigation, route }) {
   const cellRef = useRef();
   const verticalScrillRef = useRef();
 
-
+  // ----------------------------------------
+  // init
+  // ----------------------------------------
   useEffect(() => {
     console.log("useEffect1");
     init()
@@ -59,7 +60,6 @@ export default function HomeScreen({ navigation, route }) {
     createData(true) //初期表示だけ今日の日付にスクロールしたい
 
     const unsubscribe = navigation.addListener('focus', () => {
-      console.log("focus");
       createData(false)
     });
     return unsubscribe;
@@ -70,7 +70,6 @@ export default function HomeScreen({ navigation, route }) {
     if (route.params) {
       create_year = (route.params.year)
       create_month = (route.params.month)
-
     } else {
       var today = new Date();
       create_year = (today.getFullYear())
@@ -79,7 +78,6 @@ export default function HomeScreen({ navigation, route }) {
     setYear(create_year)
     setMonth(create_month)
   }
-
   const scrollToTody = () => {
     const date = new Date()
     const today = date.getDate()
@@ -88,30 +86,25 @@ export default function HomeScreen({ navigation, route }) {
     if (month == create_month && year == create_year) {
       const oneDayHeight = (Size.cell) + (Size.cell_border * 2) + (Size.cell_margin * 2)
       const node = verticalScrillRef.current
-      node.scrollTo({ x: 0, y: oneDayHeight * (today) - height / 2, animated: true })
+      if (node) node.scrollTo({ x: 0, y: oneDayHeight * (today) - height / 2, animated: true })
     }
   }
-
-
   const setHeader = () => {
     //navigation v5
     navigation.setOptions({
-      headerTitle: '作業時間',
+      headerTitle: '作業時間表',
       headerRight: () => _renderProjectButton(),
     })
   }
 
-  /**
-    *  navigate
-    */
+  // ----------------------------------------
+  // event
+  // ----------------------------------------
+
   const onPressAdd = () => {
     navigation.navigate('ProjectEdit')
   }
 
-
-  /**
-   *  event
-   */
   const onPressCellItem = (date, project) => {
     const params = {
       date: date,
@@ -153,13 +146,13 @@ export default function HomeScreen({ navigation, route }) {
   }
 
 
-  /**
-   * 今月の日付一覧を取得する 
-   */
+  // ----------------------------------------
+  // action
+  // ----------------------------------------
   const getThisMonthDateList = () => {
 
     const endDate = new Date(create_year, create_month, 0).getDate() //monthは0起算なので注意
-    dateList_for_create=[]
+    dateList_for_create = []
     for (let d = 1; d <= endDate; d++) {
       dateList_for_create.push({
         date: `${create_year}-${padding(create_month)}-${padding(d)}`,
@@ -168,9 +161,18 @@ export default function HomeScreen({ navigation, route }) {
     }
   }
 
-  /**
-   * 
-   */
+  const strFtime = (date) => {
+    const year = date.getFullYear()
+    const month = date.getMonth() + 1
+    const day = date.getDate()
+    return `${year}-${padding(month)}-${padding(day)}`
+
+  }
+
+  // ----------------------------------------
+  // create data
+  // ----------------------------------------
+
   const createData = (willScroll = false) => {
     console.log("createData", willScroll)
     setLoading(true)
@@ -187,7 +189,7 @@ export default function HomeScreen({ navigation, route }) {
     end.setDate(0);
 
     //DBからデータ取得
-    const sql_projects = 'SELECT * FROM projects WHERE deleted=0 ;';
+    const sql_projects = 'SELECT * FROM projects WHERE deleted=0 ORDER BY sort_order ;';
     // const sql_times = 'SELECT id, date, project_id, SUM(time) AS time FROM times WHERE times.deleted=0 AND date >= ? AND date <= ? GROUP BY project_id, date;';
 
     const sql_times = ' \
@@ -235,13 +237,6 @@ export default function HomeScreen({ navigation, route }) {
     )
   }
 
-  const strFtime = (date) => {
-    const year = date.getFullYear()
-    const month = date.getMonth() + 1
-    const day = date.getDate()
-    return `${year}-${padding(month)}-${padding(day)}`
-
-  }
   /**
    * ItemCell描画用のデータを作成
    * {
@@ -266,7 +261,6 @@ export default function HomeScreen({ navigation, route }) {
     setCellData(data)
     setProjects(projects)
     setDateList(dateList)
-
     setLoading(false)
 
   }
@@ -287,7 +281,6 @@ export default function HomeScreen({ navigation, route }) {
    * 日毎の作業時間合計データを作成
    * [project_id:project_id, time:time ]
    */
-
   const createProjectSummrayList = (projects, times) => {
     const list = projects.map((item) => {
       const filterd_times = times.filter(time => time.project_id == item.id)
@@ -316,9 +309,9 @@ export default function HomeScreen({ navigation, route }) {
     return time ? time.time : 0
   }
 
-  /****
-   * Render
-   */
+  // ----------------------------------------
+  // render
+  // ----------------------------------------
   const _renderProjectButton = () => {
     return (
       <TouchableWithoutFeedback
@@ -415,7 +408,7 @@ export default function HomeScreen({ navigation, route }) {
           const day = getDay(data.date)
           // holiday
           const dstyle = isWeekEnd(year, month, day) ? styles.headerHoliday : {}
-          const dstyle__text = isWeekEnd(year, month, day) ? styles.holidayTExt : {}
+          const dstyle__text = isWeekEnd(year, month, day) ? styles.holidayText : {}
 
           //today
           const today_dstyle = isToday(year, month, day) ? styles.todayCell : {}
@@ -430,7 +423,7 @@ export default function HomeScreen({ navigation, route }) {
             >
               <Text style={[styles.dateHeaderCell__text, dstyle__text]}>{parseInt(getDay(data.date))}</Text>
               <Text style={[styles.dateHeaderCell__subText, dstyle__text]}>({data.weekDay})</Text>
-              <Text style={styles.sum}>{sum}</Text>
+              <Text style={[styles.dateHeaderCell__subText, dstyle__text]}>{sum}</Text>
 
             </TouchableWithoutFeedback>
           )
@@ -450,7 +443,7 @@ export default function HomeScreen({ navigation, route }) {
           const day = getDay(item.date)
           //isHoliday
           const dstyle = isWeekEnd(year, month, day) ? styles.holiday : {}
-          const dstyle__text = isWeekEnd(year, month, day) ? styles.holidayTExt : {}
+          const dstyle__text = isWeekEnd(year, month, day) ? styles.holidayText : {}
           //today
           const today_dstyle = isToday(year, month, day) ? styles.todayCell : {}
 
@@ -523,9 +516,9 @@ export default function HomeScreen({ navigation, route }) {
   }
 
 
-  /**
-   * return
-   */
+  // ----------------------------------------
+  // return
+  // ----------------------------------------
   return (
     <SafeAreaView style={styles.container}>
       {loading == true && _renderLoader()}
@@ -537,9 +530,9 @@ export default function HomeScreen({ navigation, route }) {
 
 } //function
 
-/**
- * conf
- */
+// ----------------------------------------
+// style
+// ----------------------------------------
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
@@ -685,7 +678,7 @@ const styles = StyleSheet.create({
     backgroundColor: Color.holiday,
     borderWidth: 0
   },
-  holidayTExt: {
+  holidayText: {
     color: Color.holidayText,
   },
 
@@ -700,6 +693,7 @@ const styles = StyleSheet.create({
   sum: {
     fontWeight: 'bold',
   },
+
   sum__subText: {
     fontWeight: '200',
   },
@@ -753,6 +747,3 @@ const isWeekEnd = (year, month, day) => {
 
 }
 
-const colors = [
-
-]
