@@ -8,6 +8,7 @@ import {
   Dimensions,
   ActivityIndicator,
   Image,
+  Platform
 } from 'react-native';
 import { TouchableOpacity, TouchableWithoutFeedback } from 'react-native-gesture-handler';
 import { Color, Font, getColor, Size } from '../util/global_style'
@@ -15,7 +16,7 @@ import PlusMark from '../components/PlusMark'
 
 // db
 import { createTables, db } from '../util/db'
-
+import {isIos} from  '../util/platform'
 // layout
 const { height } = Dimensions.get('window');
 
@@ -368,11 +369,13 @@ export default function HomeScreen({ navigation, route }) {
         style={styles.projectHeader}
         bounces={false}
         ref={headerRef}
-        scrollEnabled={true}
+        scrollEnabled={isIos() ? true: false}
         scrollEventThrottle={1}
         onScroll={(e) => {
-          const node = cellRef.current
-          node.scrollTo({ x: e.nativeEvent.contentOffset.x, y: e.nativeEvent.contentOffset.y, animated: false })
+          if (isIos()){
+            const node = cellRef.current
+            node.scrollTo({ x: e.nativeEvent.contentOffset.x, y: e.nativeEvent.contentOffset.y, animated: false })
+          }
         }}
       >
         {projects.map((pj, index) => {
@@ -594,7 +597,7 @@ const styles = StyleSheet.create({
   },
 
   menu__text: {
-    fontSize: 32,
+    fontSize: Font.homeHeaderSize,
     marginHorizontal: 32
   },
   leftTopBox: {
@@ -662,10 +665,11 @@ const styles = StyleSheet.create({
   },
   dateHeaderCell__text: {
     // color:'white',
-    fontSize: 20
+    fontSize: Font.dateHeaderText
   },
   dateHeaderCell__subText: {
     // color:'white',
+    fontSize: Font.dateHeaderSubText
   },
 
   projectItemCell: {

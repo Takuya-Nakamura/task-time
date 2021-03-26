@@ -1,3 +1,5 @@
+import { isIos } from '../util/platform'
+
 const projectColor = [
     // { id: 1, color: '#E0282A' },
     // { id: 2, color: '#E26C26' },
@@ -62,7 +64,7 @@ const Color = {
 
 const Size = {
     row__height: '',
-    cell: 65,
+    cell: isIos() ? 65 : 50,
     cell_border: 0.5,
     cell_margin: 5,
     row_height: 44,
@@ -76,8 +78,9 @@ const Size = {
 const Font = {
     default: 16,
     labelSize: 20,
-
-
+    homeHeaderSize: isIos() ? 32 : 24,
+    dateHeaderText: isIos() ? 20 : 14,
+    dateHeaderSubText: isIos() ? 14 : 10,
 }
 
 export { Color, Font, Size, projectColor, getColor }

@@ -253,7 +253,9 @@ export default function DateTaskEditScreen({ navigation, route }) {
         <TouchableWithoutFeedback style={styles.row} onPress={onPressAddTask}>
           <View style={styles.labelWrapper}><Text style={styles.label__text}>タスクを追加する</Text></View>
           <View style={styles.valueWrapper}>
-          <PlusMark size={25}/>
+          <PlusMark size={25}
+            onPress={onPressAddTask}
+          />
 
           </View>
         </TouchableWithoutFeedback>

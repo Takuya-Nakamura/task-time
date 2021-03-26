@@ -31,8 +31,9 @@ export default class PlusMark extends Component {
 
 
   _onPress = () => {
-    this.props.onPress()
-
+    const {onPress} = this.props
+    if (onPress) onPress()
+    
   }
 
 a
