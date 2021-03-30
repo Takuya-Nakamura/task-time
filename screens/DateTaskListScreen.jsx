@@ -23,21 +23,23 @@ export default function DateTaskListScreen({ navigation, route }) {
   // init
   // ----------------------------------------
   useEffect(() => {
-     const unsubscribe = navigation.addListener('focus', () => {
+    const unsubscribe = navigation.addListener('focus', () => {
       init()
       setHeader()
     });
     return unsubscribe;
   }, [])
+
   const init = () => {
     if (route.params) {
+      console.log("route.params", route.params)
       setDate(route.params.date)
       // setProject(route.params.project || null)
-      select(route.params.date, route.params.project)
+      select(route.params.date, route.params.project, route.params.monthly)
     }
   }
 
-  const  setHeader = ()=>{
+  const setHeader = () => {
     navigation.setOptions({
       headerTitle: '作業時間リスト',
     })
@@ -53,16 +55,16 @@ export default function DateTaskListScreen({ navigation, route }) {
     let task_params = {}
     if (task) {
       task_params = {
-        task_time: task.time,
-        task_time_id: task.id,
-        task_name: task.task_name,
-        task_memo: task.memo,
+        taskTime: task.time,
+        taskTimeId: task.id,
+        taskName: task.task_name,
+        taskMemo: task.memo,
       }
     }
     const params = {
       date: date,
-      project_id: project.project_id,
-      project_name: project.project_name,
+      projectId: project.project_id,
+      projectName: project.project_name,
       ...task_params
     }
     navigation.navigate('DateTaskEdit', params)
@@ -75,7 +77,7 @@ export default function DateTaskListScreen({ navigation, route }) {
   let times_for_create = []
   let projects_for_create = []
 
-  const select = (date, project) => {
+  const select = (date, project, monthly) => {
     let sql_times = "\
       SELECT  \
       times.id as id, times.time as time,\
@@ -85,19 +87,24 @@ export default function DateTaskListScreen({ navigation, route }) {
       FROM times \
       LEFT OUTER JOIN  projects  ON times.project_id = projects.id \
       LEFT OUTER JOIN  tasks ON times.task_id = tasks.id \
-      WHERE times.date=? AND times.deleted=0 \
+      WHERE times.deleted= 0 \
     "
-    let params_times = [date]
+    let params_times = []
 
     let sql_projects = 'SELECT * from projects WHERE deleted=0'
     let params_projects = []
 
+    //プロジェクト毎か
     if (project) {
-      sql_times += ' AND times.project_id = ?'
-      sql_projects += ' AND id = ?'
+      sql_times += " AND times.project_id = ? "
+      sql_projects += ' AND id = ? '
       params_times.push(project.id)
       params_projects.push(project.id)
     }
+    //月次か
+    sql_times +=  monthly ? ` AND strftime('%Y-%m', date(times.date)) = ? ` : " AND times.date = ? "
+    params_times.push(date)
+
     db.transaction(tx => {
       tx.executeSql(
         sql_times,
@@ -139,7 +146,7 @@ export default function DateTaskListScreen({ navigation, route }) {
   const createData = (times, projects) => {
     const taskTimeData = projects.map((project) => {
       const tasktimes = times.filter((time) => time.project_id == project.id)
-      const projectTime = tasktimes.length ? tasktimes.reduce((a, c) =>  a + parseFloat(c.time), 0) : 0
+      const projectTime = tasktimes.length ? tasktimes.reduce((a, c) => a + parseFloat(c.time), 0) : 0
       return {
         project_id: project.id,
         project_name: project.name,
@@ -224,8 +231,7 @@ const styles = StyleSheet.create({
   },
   projectWrapper: {
     marginBottom: 30,
-    
-    paddingBottom:5
+    paddingBottom: 5
   },
   projectName: {
     margin: 20,
@@ -242,7 +248,7 @@ const styles = StyleSheet.create({
   },
   projectTimeText: {
     marginRight: 30,
-    fontWeight:'bold'
+    fontWeight: 'bold'
 
   },
   taskList: {
@@ -269,12 +275,12 @@ const styles = StyleSheet.create({
   listCell__arrow: {
     width: 30
   },
-  addButton__wrapper:{
-    justifyContent:'center',
-    alignItems:'center'
+  addButton__wrapper: {
+    justifyContent: 'center',
+    alignItems: 'center'
   },
-  addButton__Text:{
-    marginTop:5
+  addButton__Text: {
+    marginTop: 5
   }
 
 });

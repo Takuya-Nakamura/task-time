@@ -39,7 +39,7 @@ const projectColor = [
 ]
 const getColor = (id) => {
     const item = projectColor.find((item) => item.id == id)
-    return item ? item.color : null
+    return item ? item.color : projectColor[0].color
 }
 
 const Color = {

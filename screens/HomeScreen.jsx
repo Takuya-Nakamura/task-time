@@ -120,12 +120,17 @@ export default function HomeScreen({ navigation, route }) {
     navigation.navigate('DateTaskList', params)
   }
 
-  const onPressProjectHeader = (projectId) => {
+  const onPressProjectHeader = (project) => {
+    // const params = {
+    //   id: projectId
+    // }
+    // navigation.navigate('ProjectEdit', params)
     const params = {
-      id: projectId
-    }
-    //TODO本当はプロジェクトの今月の集計ページに行ったほうが良いかも
-    navigation.navigate('ProjectEdit', params)
+      project: project,
+      date: `${year}-${padding(month)}`,
+      monthly:true
+    }    
+    navigation.navigate('DateTaskList', params)
   }
 
 
@@ -386,7 +391,8 @@ export default function HomeScreen({ navigation, route }) {
               <TouchableWithoutFeedback
                 key={index}
                 style={[styles.cell, styles.projectHeaderCell, { backgroundColor: getColor(pj.color) }]}
-                onPress={() => onPressProjectHeader(pj.id)}
+                // onPress={() => onPressProjectHeader(pj.id)}
+                onPress={() => onPressProjectHeader(pj)}
               >
                 <Text style={styles.projectHeaderCell__text}>{pj.name}</Text>
               </TouchableWithoutFeedback>

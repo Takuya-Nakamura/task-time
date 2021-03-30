@@ -5,6 +5,8 @@ import {
   Text,
   StyleSheet,
   Alert,
+  ScrollView,
+  Image
 } from 'react-native';
 import { TextInput, TouchableHighlight, TouchableWithoutFeedback } from 'react-native-gesture-handler';
 import PlusMark from '../components/PlusMark'
@@ -45,37 +47,51 @@ export default function DateTaskEditScreen({ navigation, route }) {
   // Use
   // ----------------------------------------
   useEffect(() => {
+    init()
     const unsubscribe = navigation.addListener('focus', () => {
-      init()
-      setHeader()
+      select()
     });
     return unsubscribe
   }, [])
+
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: '作業時間 編集',
+      headerRight: () => _renderRightSaveButton()
+    })
+  }, [navigation,  taskName, taskTime, taskTimeId]);
+
+  const _renderRightSaveButton = () => {
+    return (
+      <TouchableWithoutFeedback
+        onPress={()=>onPressSave()}
+        style={styles.addProjectBtn}
+      >
+        <Image
+          source={require('../assets/save.png')}
+          style={styles.addProjectBtn__Image}
+        />
+      </TouchableWithoutFeedback>
+    )
+  }
 
 
   // ----------------------------------------
   // init
   // ----------------------------------------
   const init = () => {
-    console.log(route.params)
+    console.log("date task edit param", route.params)
     if (route.params) {
       setDate(route.params.date)
-      setProjectId(route.params.project_id)
-      setProjectName(route.params.project_name)
-      setTaskName(route.params.task_name || '')
-      setTaskTime(route.params.task_time || '')
-      setTaskTimeId(route.params.task_time_id || '')
-      setTaskMemo(route.params.task_memo || '')
-      select()
+      setProjectId(route.params.projectId)
+      setProjectName(route.params.projectName)
+      setTaskName(route.params.taskName || '')
+      setTaskTime(route.params.taskTime || '')
+      setTaskTimeId(route.params.taskTimeId || '')
+      setTaskMemo(route.params.taskMemo || '')
+
     }
   }
-  const setHeader = () => {
-    //navigation v5
-    navigation.setOptions({
-      headerTitle: '作業時間 編集',
-    })
-  }
-
 
   // ----------------------------------------
   // event
@@ -130,16 +146,15 @@ export default function DateTaskEditScreen({ navigation, route }) {
   // db
   // ----------------------------------------
   const select = () => {
-    const sql_tasks = "SELECT * FROM tasks WHERE project_id = ? AND deleted=0;"
+    const sql_tasks = "SELECT * FROM tasks WHERE project_id = ? AND deleted = 0;"
 
     db.transaction(tx => {
       tx.executeSql(
         sql_tasks,
-        [route.params.project_id],
+        [route.params.projectId],
         (transaction, resultSet) => { createData(resultSet.rows._array || []) },
         (transaction, error) => { console.log('execute fail', error) }
       );
-
     })
   }
 
@@ -150,7 +165,6 @@ export default function DateTaskEditScreen({ navigation, route }) {
     setTaskPickerData(taskPickerData)
     if (taskPickerData.length > 0) setTaskName(taskPickerData[0]['value'])
     setTaskMaster(tasks)
-
   }
 
   const insertTaskTime = () => {
@@ -207,15 +221,15 @@ export default function DateTaskEditScreen({ navigation, route }) {
   // ----------------------------------------
   return (
     <SafeAreaView style={styles.container}>
-
+      <ScrollView>
         <View style={styles.header}>
           <Text style={styles.header__Text}>{date}  </Text>
           <Text style={styles.header__Text}>{projectName}</Text>
         </View>
 
-      <View style={styles.listWrapper}>
+        <View style={styles.listWrapper}>
 
-        {/* <TouchableWithoutFeedback style={[styles.row, styles.disable]}>
+          {/* <TouchableWithoutFeedback style={[styles.row, styles.disable]}>
           <View style={styles.labelWrapper}><Text style={styles.label__text}>プロジェクト</Text></View>
           <View style={styles.valueWrapper}><Text>{projectName}</Text></View>
         </TouchableWithoutFeedback>
@@ -226,113 +240,114 @@ export default function DateTaskEditScreen({ navigation, route }) {
         </TouchableWithoutFeedback> */}
 
 
-        {/* Task */}
-        <TouchableWithoutFeedback
-          onPress={onPressTaskRow}
-          style={[styles.row]}
-          pointerEvents={'auto'}
-        >
-          <View style={styles.labelWrapper}><Text style={styles.label__text}>タスク</Text></View>
+          {/* Task */}
+          <TouchableWithoutFeedback
+            onPress={onPressTaskRow}
+            style={[styles.row]}
+            pointerEvents={'auto'}
+          >
+            <View style={styles.labelWrapper}><Text style={styles.label__text}>タスク</Text></View>
 
-          {taskPickerData.length != 0 &&
+            {taskPickerData.length != 0 &&
+              <View style={styles.valueWrapper}>
+                {taskName == '' && <Text style={[styles.textInput, { color: '#888' }]}>タスクを選択してください</Text>}
+                {taskName !== '' && <Text style={styles.textInput}>{taskName}</Text>}
+              </View>
+            }
+
+            {taskPickerData.length == 0 &&
+              <View style={styles.valueWrapper}>
+                {taskName == '' && <Text style={[styles.textInput, { color: '#888' }]}>タスクを追加してください</Text>}
+              </View>
+            }
+
+          </TouchableWithoutFeedback>
+
+
+          <TouchableWithoutFeedback style={styles.row} onPress={onPressAddTask}>
+            <View style={styles.labelWrapper}><Text style={styles.label__text}>タスクを追加する</Text></View>
             <View style={styles.valueWrapper}>
-              {taskName == '' && <Text style={[styles.textInput, { color: '#888' }]}>タスクを選択してください</Text>}
-              {taskName !== '' && <Text style={styles.textInput}>{taskName}</Text>}
+              <PlusMark size={25}
+                onPress={onPressAddTask}
+              />
+
             </View>
-          }
+          </TouchableWithoutFeedback>
 
-          {taskPickerData.length == 0 &&
-            <View style={styles.valueWrapper}>
-              {taskName == '' && <Text style={[styles.textInput, { color: '#888' }]}>タスクを追加してください</Text>}
-            </View>
-          }
-
-        </TouchableWithoutFeedback>
-
-
-        <TouchableWithoutFeedback style={styles.row} onPress={onPressAddTask}>
-          <View style={styles.labelWrapper}><Text style={styles.label__text}>タスクを追加する</Text></View>
-          <View style={styles.valueWrapper}>
-          <PlusMark size={25}
-            onPress={onPressAddTask}
-          />
-
-          </View>
-        </TouchableWithoutFeedback>
-
-        <ModalPicker
-          data={taskPickerData}
-          modalVisible={taskModalVisible}
-          onClose={() => { setTaskModalVisible(false) }}
-          selectedValue={taskName}
-          onValueChange={(v) => {
-            setTaskName(v)
-          }}
-        >
-        </ModalPicker>
-
-
-        {/* Time */}
-        <TouchableWithoutFeedback
-          onPress={onPressTimeRow}
-          pointerEvents={'auto'}
-          style={styles.row}
-        >
-          <View style={styles.labelWrapper}><Text style={styles.label__text}>時間</Text></View>
-          <View style={styles.valueWrapper}>
-            {taskTime == '' && <Text style={[styles.textInput, { color: '#888' }]}>作業時間を選択してください</Text>}
-            {taskTime !== '' && <Text style={styles.textInput}>{taskTime}</Text>}
-          </View>
-        </TouchableWithoutFeedback>
-        <ModalPicker
-          data={timePickerData}
-          modalVisible={timeModalVisible}
-          onClose={() => { setTimeModalVisible(false) }}
-          selectedValue={taskTime}
-          onValueChange={(v) => { setTaskTime(v) }}
-        >
-        </ModalPicker>
-
-        {/* memo */}
-        <View
-          pointerEvents={'auto'}
-          style={styles.memo__row}
-        >
-          <View style={styles.labelWrapper}><Text style={styles.label__text}>メモ</Text></View>
-          <TextInput
-            multiline={true}
-            style={styles.memo__input}
-            onChangeText={(text) => {
-              console.log(text)
-              setTaskMemo(text)
+          <ModalPicker
+            data={taskPickerData}
+            modalVisible={taskModalVisible}
+            onClose={() => { setTaskModalVisible(false) }}
+            selectedValue={taskName}
+            onValueChange={(v) => {
+              setTaskName(v)
             }}
-            defaultValue={taskMemo}
-          />
+          >
+          </ModalPicker>
+
+
+          {/* Time */}
+          <TouchableWithoutFeedback
+            onPress={onPressTimeRow}
+            pointerEvents={'auto'}
+            style={styles.row}
+          >
+            <View style={styles.labelWrapper}><Text style={styles.label__text}>時間</Text></View>
+            <View style={styles.valueWrapper}>
+              {taskTime == '' && <Text style={[styles.textInput, { color: '#888' }]}>作業時間を選択してください</Text>}
+              {taskTime !== '' && <Text style={styles.textInput}>{taskTime}</Text>}
+            </View>
+          </TouchableWithoutFeedback>
+          <ModalPicker
+            data={timePickerData}
+            modalVisible={timeModalVisible}
+            onClose={() => { setTimeModalVisible(false) }}
+            selectedValue={taskTime}
+            onValueChange={(v) => { setTaskTime(v) }}
+          >
+          </ModalPicker>
+
+          {/* memo */}
+          <View
+            pointerEvents={'auto'}
+            style={styles.memo__row}
+          >
+            <View style={styles.labelWrapper}><Text style={styles.label__text}>メモ</Text></View>
+            <TextInput
+              multiline={true}
+              style={styles.memo__input}
+              onChangeText={(text) => {
+                console.log(text)
+                setTaskMemo(text)
+              }}
+              defaultValue={taskMemo}
+            />
+          </View>
         </View>
-      </View>
 
-      {/* Button */}
-      <View style={styles.field} >
-        <TouchableHighlight
-          style={styles.saveButton}
-          onPress={onPressSave}
-        >
-          <Text style={styles.button__text}>保存</Text>
-        </TouchableHighlight>
-      </View>
-
-      {projectId != '' &&
+        {/* Button */}
         <View style={styles.field} >
           <TouchableHighlight
-            style={styles.deleteButton}
-            onPress={onPressDelete}
+            style={styles.saveButton}
+            onPress={onPressSave}
           >
-            <Text style={styles.button__text}>削除</Text>
+            <Text style={styles.button__text}>保存</Text>
           </TouchableHighlight>
         </View>
-      }
+
+        {projectId != '' &&
+          <View style={styles.field} >
+            <TouchableHighlight
+              style={styles.deleteButton}
+              onPress={onPressDelete}
+            >
+              <Text style={styles.button__text}>削除</Text>
+            </TouchableHighlight>
+          </View>
+        }
 
 
+      </ScrollView>
     </SafeAreaView>
   );
 
@@ -463,7 +478,17 @@ const styles = StyleSheet.create({
     height: 80,
     padding: 10,
     borderRadius: 5,
-  }
+  },
+  addProjectBtn: {
+    marginRight: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addProjectBtn__Image: {
+    width: 30,
+    height: 30
+  },
+
 });
 
 const timePickerData = [

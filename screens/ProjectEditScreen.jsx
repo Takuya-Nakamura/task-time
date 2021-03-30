@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  Image
 } from 'react-native';
 import { TextInput, TouchableHighlight, TouchableWithoutFeedback } from 'react-native-gesture-handler';
 import PlusMark from '../components/PlusMark'
@@ -21,8 +22,8 @@ export default function ProjectEditScreen({ navigation, route }) {
   const [name, setName] = useState();
   const [time, setTime] = useState();
   const [tasks, setTasks] = useState([]);
-  const [color, setColor] = useState(getColor(1));
-  const [colorId, setColorId] = useState(1);
+  const [color, setColor] = useState(getColor(11));
+  const [colorId, setColorId] = useState(11);
 
   const [projectIsActive, setProjectIsActive] = useState(false);
   const [timeIsActive, setTimeIsActive] = useState(false);
@@ -31,14 +32,20 @@ export default function ProjectEditScreen({ navigation, route }) {
   // init
   // ----------------------------------------
   useEffect(() => {
+    init();
+ 
     const unsubscribe = navigation.addListener('focus', () => {
-      console.log("will focus")
-      init();
-      setHeader();
-      // createData()
+            
     });
     return unsubscribe
   }, [])
+
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: 'プロジェクト編集',
+      headerRight: () => _renderProjectSaveButton()
+    })
+  }, [navigation, name]);
 
   const nameRef = useRef();
   const timeRef = useRef();
@@ -50,10 +57,18 @@ export default function ProjectEditScreen({ navigation, route }) {
     }
   }
 
-  const setHeader = () => {
-    navigation.setOptions({
-      headerTitle: 'プロジェクト編集',
-    })
+  const _renderProjectSaveButton = () => {
+    return (
+      <TouchableWithoutFeedback
+        onPress={()=>onPressSave(name)}
+        style={styles.addProjectBtn}
+      >
+        <Image
+          source={require('../assets/save.png')}
+          style={styles.addProjectBtn__Image}
+        />
+      </TouchableWithoutFeedback>
+    )
   }
 
   // ----------------------------------------
@@ -141,8 +156,7 @@ export default function ProjectEditScreen({ navigation, route }) {
     node.focus()
   }
 
-  const onPressSave = () => {
-    const errors = []
+  const onPressSave = (name) => {
     if (!name) {
       alert("プロジェクト名を入力してください。")
     } else {
@@ -188,6 +202,7 @@ export default function ProjectEditScreen({ navigation, route }) {
   // render
   // ----------------------------------------
   const _renderTasks = () => {
+    
     return (
       <>
         <View style={styles.field} >
@@ -272,6 +287,8 @@ export default function ProjectEditScreen({ navigation, route }) {
   // ----------------------------------------
   const projectdStyle = projectIsActive ? styles.textInput_active : {}
   const timedStyle = timeIsActive ? styles.textInput_active : {}
+
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
@@ -281,7 +298,7 @@ export default function ProjectEditScreen({ navigation, route }) {
             <TextInput
               onChangeText={(text) => setName(text)}
               value={name}
-              placeholder={'Ex. 開発'}
+              placeholder={'アプリ開発'}
               // autoFocus={false}
               style={[styles.textInput, projectdStyle]}
               ref={nameRef}
@@ -318,11 +335,11 @@ export default function ProjectEditScreen({ navigation, route }) {
 
         {id != null && _renderTasks()}
 
-
+{console.log("TouchableHighlight", name)}
         <View style={styles.field} >
           <TouchableHighlight
             style={styles.saveButton}
-            onPress={onPressSave}
+            onPress={()=>onPressSave(name)}
           >
             <Text style={styles.button__text}>保存</Text>
           </TouchableHighlight>
@@ -464,6 +481,15 @@ const styles = StyleSheet.create({
   },
   addButton__wrapper: {
     marginLeft: 20
+  },
+  addProjectBtn: {
+    marginRight: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addProjectBtn__Image: {
+    width: 30,
+    height: 30
   },
 
 
