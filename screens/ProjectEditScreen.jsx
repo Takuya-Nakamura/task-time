@@ -16,6 +16,8 @@ import { Color, Font, Size, projectColor, getColor } from '../util/global_style'
 // db
 import { db } from '../util/db'
 
+import Banner from '../components/Banner';
+
 export default function ProjectEditScreen({ navigation, route }) {
 
   const [id, setId] = useState(null);
@@ -33,9 +35,9 @@ export default function ProjectEditScreen({ navigation, route }) {
   // ----------------------------------------
   useEffect(() => {
     init();
- 
+
     const unsubscribe = navigation.addListener('focus', () => {
-            
+
     });
     return unsubscribe
   }, [])
@@ -60,7 +62,7 @@ export default function ProjectEditScreen({ navigation, route }) {
   const _renderProjectSaveButton = () => {
     return (
       <TouchableWithoutFeedback
-        onPress={()=>onPressSave(name)}
+        onPress={() => onPressSave(name)}
         style={styles.addProjectBtn}
       >
         <Image
@@ -202,7 +204,6 @@ export default function ProjectEditScreen({ navigation, route }) {
   // render
   // ----------------------------------------
   const _renderTasks = () => {
-    
     return (
       <>
         <View style={styles.field} >
@@ -335,11 +336,10 @@ export default function ProjectEditScreen({ navigation, route }) {
 
         {id != null && _renderTasks()}
 
-{console.log("TouchableHighlight", name)}
         <View style={styles.field} >
           <TouchableHighlight
             style={styles.saveButton}
-            onPress={()=>onPressSave(name)}
+            onPress={() => onPressSave(name)}
           >
             <Text style={styles.button__text}>保存</Text>
           </TouchableHighlight>
@@ -356,6 +356,7 @@ export default function ProjectEditScreen({ navigation, route }) {
           </View>
         }
       </ScrollView>
+      <Banner />
     </SafeAreaView>
   );
 

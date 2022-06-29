@@ -2,7 +2,7 @@
   "expo": {
     "name": "TaskTime",
     "slug": "TaskTime",
-    "version": "1.0.0",
+    "version": "1.1.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "splash": {
@@ -19,14 +19,20 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.takuya.nakamura.tasktime",
-      "buildNumber": "1.0.0"      
+      "buildNumber": "1.1.3",
+      "config": {
+        "googleMobileAdsAppId": "ca-app-pub-6025972467008506~8398698104"
+      }
     },
     "android": {
       "package": "com.takuya.nakamura.tasktime",
-      "versionCode": 1,      
+      "versionCode": 3,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#FFFFFF"
+      },
+      "config": {
+        "googleMobileAdsAppId": "ca-app-pub-6025972467008506~6782779397"
       }
     },
     "web": {

@@ -11,7 +11,6 @@ import DateTaskEditScreen from './screens/DateTaskEditScreen'
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'; //tab
-import { ease } from 'react-native/Libraries/Animated/src/Easing';
 
 const RootStack = createStackNavigator();
 const HomeStack = createStackNavigator();
@@ -72,54 +71,10 @@ export default function App() {
         <RootStack.Screen name="DateTaskList" component={DateTaskListScreen} options={options} />
         <RootStack.Screen name="DateTaskEdit" component={DateTaskEditScreen} options={options} />
       </RootStack.Navigator>
+
+
     </NavigationContainer>
   );
-
-  // modal only
-  // return (
-  //   <NavigationContainer>
-  //     <RootStack.Navigator
-  //       initialRouteName="Home" mode="modal"
-  //     >
-  //       <RootStack.Screen name="Home" component={HomeScreen} />
-  //       <RootStack.Screen name="Project" component={ProjectListScreen} />
-  //       <RootStack.Screen name="ProjectEdit" component={ProjectEditScreen} />
-  //     </RootStack.Navigator>
-  //   </NavigationContainer>
-  // );
-
-  // stack & modal
-  // return (
-  //   <NavigationContainer>
-  //     <RootStack.Navigator
-  //       initialRouteName="Home" mode="modal"
-  //     >
-  //       <RootStack.Screen
-  //         name="Home"
-  //         component={HomeRoute}
-  //         options={{ headerShown: false }}
-  //       />
-
-  //       <RootStack.Screen
-  //         name="Project"
-  //         component={ProjectRoute}
-  //         options={{ headerShown: false }}
-  //       />
-
-  //     </RootStack.Navigator>
-  //   </NavigationContainer>
-  // );
-
-
-  // //tab
-  // return (
-  //   <NavigationContainer>
-  //     <Tab.Navigator>
-  //       <Tab.Screen name="Home" component={HomeRoute} />
-  //       <Tab.Screen name="Project" component={ProjectRoute} />
-  //     </Tab.Navigator>
-  //   </NavigationContainer>
-  // )
 
 }
 

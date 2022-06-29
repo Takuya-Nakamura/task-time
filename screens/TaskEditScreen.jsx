@@ -11,6 +11,8 @@ import { Color, Font, Size } from '../util/global_style'
 
 // db
 import { db } from '../util/db'
+import Banner from '../components/Banner';
+
 
 export default function TaskEditScreen({ navigation, route }) {
 
@@ -156,6 +158,7 @@ export default function TaskEditScreen({ navigation, route }) {
           </View>
         }
       </View>
+      <Banner/>
     </SafeAreaView>
   );
 

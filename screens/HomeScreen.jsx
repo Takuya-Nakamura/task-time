@@ -8,7 +8,6 @@ import {
   Dimensions,
   ActivityIndicator,
   Image,
-  Platform
 } from 'react-native';
 import { TouchableOpacity, TouchableWithoutFeedback } from 'react-native-gesture-handler';
 import { Color, Font, getColor, Size } from '../util/global_style'
@@ -16,12 +15,19 @@ import PlusMark from '../components/PlusMark'
 
 // db
 import { createTables, db } from '../util/db'
-import {isIos} from  '../util/platform'
+import { isIos } from '../util/platform'
+import Banner from '../components/Banner';
+
+
 // layout
 const { height } = Dimensions.get('window');
 
-
-
+//同期的にデータを作成するために必要
+let create_year = ''
+let create_month = ''
+let dateList_for_create = []
+let projects_for_create = []
+let times_for_create = []
 
 export default function HomeScreen({ navigation, route }) {
 
@@ -29,23 +35,14 @@ export default function HomeScreen({ navigation, route }) {
   const [dateList, setDateList] = useState([]);
   const [cellData, setCellData] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const [year, setYear] = useState();
   const [month, setMonth] = useState();
-
   const [dateSummary, setDateSummary] = useState();
   const [projectSummary, setProjectSummary] = useState();
   const [monthlySummary, setMonthlySummary] = useState();
   const [projectEstimateSummary, setProjectEstimateSummary] = useState();
 
-  //同期的にデータを作成するために必要
-  let dateList_for_create = []
-  let projects_for_create = []
-  let times_for_create = []
-  let create_year = ''
-  let create_month = ''
-
-  //ref 
+  //ref
   const headerRef = useRef();
   const cellRef = useRef();
   const verticalScrillRef = useRef();
@@ -57,10 +54,10 @@ export default function HomeScreen({ navigation, route }) {
     init()
     setHeader()
     createTables()
-    createData(true) //初期表示だけ今日の日付にスクロールしたい
+    createData({ willScrollToToday: true }) //初期表示だけ今日の日付にスクロールしたい
 
     const unsubscribe = navigation.addListener('focus', () => {
-      createData(false)
+      createData({ willScrollToToday: false })
     });
     return unsubscribe;
   }, [])
@@ -121,15 +118,11 @@ export default function HomeScreen({ navigation, route }) {
   }
 
   const onPressProjectHeader = (project) => {
-    // const params = {
-    //   id: projectId
-    // }
-    // navigation.navigate('ProjectEdit', params)
     const params = {
       project: project,
       date: `${year}-${padding(month)}`,
-      monthly:true
-    }    
+      monthly: true
+    }
     navigation.navigate('DateTaskList', params)
   }
 
@@ -140,13 +133,12 @@ export default function HomeScreen({ navigation, route }) {
     setLoading(true)
     const date = new Date(year, (month - 1), 5)
     date.setMonth(date.getMonth() + diff);
-
     create_year = date.getFullYear()
     create_month = date.getMonth() + 1
 
     setYear(create_year)
     setMonth(create_month)
-    createData()
+    createData({ willScrollToToday: false })
 
   }
 
@@ -155,7 +147,6 @@ export default function HomeScreen({ navigation, route }) {
   // action
   // ----------------------------------------
   const getThisMonthDateList = () => {
-
     const endDate = new Date(create_year, create_month, 0).getDate() //monthは0起算なので注意
     dateList_for_create = []
     for (let d = 1; d <= endDate; d++) {
@@ -178,14 +169,15 @@ export default function HomeScreen({ navigation, route }) {
   // create data
   // ----------------------------------------
 
-  const createData = (willScroll = false) => {
-    setLoading(true)
+  const createData = ({ willScrollToToday = false }) => {
+    console.log('createData')
+    // loadingを表示すると再描画時にscroll位置が先頭に戻ってしまう。一旦off。
+    // setLoading(true)
 
     //日付リスト作成
     getThisMonthDateList()
     let start = new Date(create_year, create_month - 1, 1);
     start.setDate(1);
-
 
     let end = new Date(create_year, create_month - 1, 1);
     end.setDate(1);
@@ -194,7 +186,6 @@ export default function HomeScreen({ navigation, route }) {
 
     //DBからデータ取得
     const sql_projects = 'SELECT * FROM projects WHERE deleted=0 ORDER BY sort_order ;';
-    // const sql_times = 'SELECT id, date, project_id, SUM(time) AS time FROM times WHERE times.deleted=0 AND date >= ? AND date <= ? GROUP BY project_id, date;';
 
     const sql_times = ' \
     SELECT times.id as id, times.date as date, project_id, SUM(times.time) AS time, projects.deleted FROM times \
@@ -234,8 +225,7 @@ export default function HomeScreen({ navigation, route }) {
         createCellData(projects_for_create, dateList_for_create, times_for_create)
 
         setTimeout(() => setLoading(false), 100)
-        if (willScroll) setTimeout(() => scrollToTody(), 150)
-
+        if (willScrollToToday) setTimeout(() => scrollToTody(), 150)
 
       }
     )
@@ -261,7 +251,6 @@ export default function HomeScreen({ navigation, route }) {
       })
       data[pj.id] = items
     })
-
     setCellData(data)
     setProjects(projects)
     setDateList(dateList)
@@ -374,10 +363,10 @@ export default function HomeScreen({ navigation, route }) {
         style={styles.projectHeader}
         bounces={false}
         ref={headerRef}
-        scrollEnabled={isIos() ? true: false}
+        scrollEnabled={isIos() ? true : false}
         scrollEventThrottle={1}
         onScroll={(e) => {
-          if (isIos()){
+          if (isIos()) {
             const node = cellRef.current
             node.scrollTo({ x: e.nativeEvent.contentOffset.x, y: e.nativeEvent.contentOffset.y, animated: false })
           }
@@ -530,6 +519,7 @@ export default function HomeScreen({ navigation, route }) {
       {loading == true && _renderLoader()}
       {loading == false && projects.length == 0 && _renderZero()}
       {loading == false && projects.length != 0 && _renderHome()}
+      <Banner />
     </SafeAreaView>
   );
 

@@ -13,6 +13,7 @@ import DraggableFlatList from 'react-native-draggable-flatlist';
 
 // db
 import { db } from '../util/db'
+import Banner from '../components/Banner';
 
 
 export default function ProjectListScreen(props) {
@@ -173,6 +174,8 @@ export default function ProjectListScreen(props) {
         onDragEnd={_onDragEnd}
 
       />
+      <Banner/>
+
     </SafeAreaView>
   );
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   SafeAreaView,
   View,
@@ -11,43 +11,34 @@ import {
 import { TextInput, TouchableHighlight, TouchableWithoutFeedback } from 'react-native-gesture-handler';
 import PlusMark from '../components/PlusMark'
 import { Color, Font, Size } from '../util/global_style'
-
-//component
 import { ModalPicker } from '../components/ModalPicker'
-
-// db
 import { db } from '../util/db'
+import Banner from '../components/Banner';
+
 
 export default function DateTaskEditScreen({ navigation, route }) {
 
   //params
   const [date, setDate] = useState('');
-
   const [projectId, setProjectId] = useState();
   const [projectName, setProjectName] = useState();
-
   const [taskName, setTaskName] = useState('');
-
   const [taskTimeId, setTaskTimeId] = useState('')
   const [taskTime, setTaskTime] = useState('')
-
   const [taskMemo, setTaskMemo] = useState('')
-
   // task modal
   const [taskPickerData, setTaskPickerData] = useState([]);
   const [taskMaster, setTaskMaster] = useState([]);
   const [taskModalVisible, setTaskModalVisible] = useState(false);
-
   // time modal
   const [timeModalVisible, setTimeModalVisible] = useState('');
 
-
-
   // ----------------------------------------
-  // Use
+  // hooks
   // ----------------------------------------
   useEffect(() => {
     init()
+    // onfocus
     const unsubscribe = navigation.addListener('focus', () => {
       select()
     });
@@ -59,12 +50,12 @@ export default function DateTaskEditScreen({ navigation, route }) {
       headerTitle: '作業時間 編集',
       headerRight: () => _renderRightSaveButton()
     })
-  }, [navigation,  taskName, taskTime, taskTimeId]);
+  }, [navigation, taskName, taskTime, taskTimeId]);
 
   const _renderRightSaveButton = () => {
     return (
       <TouchableWithoutFeedback
-        onPress={()=>onPressSave()}
+        onPress={() => onPressSave()}
         style={styles.addProjectBtn}
       >
         <Image
@@ -80,7 +71,6 @@ export default function DateTaskEditScreen({ navigation, route }) {
   // init
   // ----------------------------------------
   const init = () => {
-    console.log("date task edit param", route.params)
     if (route.params) {
       setDate(route.params.date)
       setProjectId(route.params.projectId)
@@ -132,7 +122,7 @@ export default function DateTaskEditScreen({ navigation, route }) {
     if (taskPickerData.length == 0) {
       onPressAddTask()
     } else {
-      if (!taskName) { setTaskName(taskMaster[0].name) }
+      if (!taskName) { setTaskName(taskMaster[taskMaster.length - 1].name) }
       setTaskModalVisible(!taskModalVisible)
     }
   }
@@ -163,7 +153,8 @@ export default function DateTaskEditScreen({ navigation, route }) {
       return { value: task.name, label: task.name }
     })
     setTaskPickerData(taskPickerData)
-    if (taskPickerData.length > 0) setTaskName(taskPickerData[0]['value'])
+    //初期値は一番最新のタスクにする, 選択済のデータの場合はそれを表示したい..
+    if(!route.params,taskName && taskPickerData.length > 0) setTaskName(taskPickerData[taskPickerData.length-1]['value'])
     setTaskMaster(tasks)
   }
 
@@ -348,6 +339,7 @@ export default function DateTaskEditScreen({ navigation, route }) {
 
 
       </ScrollView>
+      <Banner />
     </SafeAreaView>
   );
 
